@@ -1,0 +1,27 @@
+{
+  "SCENARIO": "default",
+  "STACK_ID": "shibsp",
+  "ACCOUNT": "037860335094",
+  "REGION": "us-east-2",
+  "LANDSCAPE": "shibtest",
+  "SHIBBOLETH": {
+    "entityId": "https://*.kualitest.research.bu.edu/shibboleth",
+    "idpIssuer": "https://shib-test.bu.edu/idp/shibboleth",
+    "entryPoint": "https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO",
+    "callbackUrl": "https://test.kualitest.research.bu.edu",
+    "logoutUrl": "https://shib-test.bu.edu/Shibboleth.sso/Logout",
+    "secret": {
+      "_secretArn": "arn:aws:secretsmanager:us-east-2:037860335094:secret:dev/wp/shib-sp-test-JML3FN",
+      "_refreshInterval": "3600000",
+      "samlPrivateKeySecretFld": "wp-sp-key",
+      "samlCertSecretFld": "wp-sp-cert",
+      "jwtPrivateKeySecretFld": "wp-jwt-prikey",
+      "jwtPublicKeySecretFld": "wp-jwt-pubkey"
+    }
+  },
+  "TAGS": {
+    "Service": "client",
+    "Function": "ett",
+    "Landscape": "dev"
+  }
+}

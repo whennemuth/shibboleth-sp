@@ -1,0 +1,23 @@
+{
+  "name": "lambda-based-shibboleth-sp",
+  "version": "1.0.0",
+  "description": "A simple lambda app accessed through cloudfront and an edge function that acts as a shibboleth sp",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Warren Hennemuth",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.433.0",
+    "http": "^0.0.1-security",
+    "install": "^0.13.0",
+    "jsonwebtoken": "^9.0.2",
+    "npm": "^10.2.1",
+    "saml2-js": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/saml2-js": "^3.0.3",
+    "@types/jsonwebtoken": "^9.0.4"
+  }
+}
