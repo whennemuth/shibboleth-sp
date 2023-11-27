@@ -1,11 +1,12 @@
-import { CfnOutput, Duration } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { IContext } from '../context/IContext';
 import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { FunctionUrl, FunctionUrlAuthType, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { Distribution, LambdaEdgeEventType, OriginProtocolPolicy, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
+import { AllowedMethods, CachePolicy, Distribution, LambdaEdgeEventType, OriginProtocolPolicy, PriceClass, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
 import { Effect, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Bucket, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
 
 export class LambdaShibbolethStackResources extends Construct {
   constructor(stack: Construct, stackName: string, props?: any) {
@@ -14,14 +15,14 @@ export class LambdaShibbolethStackResources extends Construct {
     const context:IContext = stack.node.getContext('stack-parms');
 
     // Lambda@Edge function
-    const edgeFunction = new NodejsFunction(stack, 'EdgeFunction', {
+    const edgeFunctionOrigin = new NodejsFunction(stack, 'EdgeFunctionOrigin', {
       runtime: Runtime.NODEJS_18_X,
-      entry: 'lambda/sp.mjs',
-      timeout: Duration.seconds(10),
+      entry: 'lib/lambda/FunctionSpOrigin.ts',
+      functionName: 'SPFunctionOrigin',
       bundling: {
         externalModules: [ '@aws-sdk/*' ],
       },
-      role: new Role(stack, 'LambdaRole', {
+      role: new Role(stack, 'EdgeLambdaRole', {
         assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
         inlinePolicies: {
           "ReadSecretsManager": new PolicyDocument({
@@ -30,42 +31,85 @@ export class LambdaShibbolethStackResources extends Construct {
                 actions: [ 'secretsmanager:GetSecretValue', 'secretsmanager:ListSecrets' ],
                 effect: Effect.ALLOW,
                 resources: [ '*' ],    
-              })
+              }),
+              new PolicyStatement({
+                actions: [ 'logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents' ],
+                effect: Effect.ALLOW,
+                resources: [ '*' ],    
+              }),
             ]
           })
         },
       }),
     });
 
+    const edgeFunctionViewer = new NodejsFunction(stack, 'EdgeFunctionViewer',{
+      runtime: Runtime.NODEJS_18_X,
+      entry: 'lib/lambda/FunctionSpViewer.ts',
+      functionName: 'SPFunctionViewer',
+    });
+
     // Simple lambda-based web app
     const appFunction = new NodejsFunction(stack, 'AppFunction', {
       runtime: Runtime.NODEJS_18_X,
-      entry: 'lambda/app.mjs',
+      entry: 'lib/lambda/FunctionApp.ts',
       timeout: Duration.seconds(10),
-      functionName: 'AppFunction',      
+      functionName: 'AppFunction',     
     });
 
     // Lambda function url for the web app.
     const appFuncUrl = new FunctionUrl(appFunction, 'Url', {
       function: appFunction,
-      authType: FunctionUrlAuthType.AWS_IAM,
+      // authType: FunctionUrlAuthType.AWS_IAM,
+      authType: FunctionUrlAuthType.NONE,
     })
 
     // CloudFront Distribution
     const cloudFrontDistribution = new Distribution(stack, 'MyCloudFrontDistribution', {
+      priceClass: PriceClass.PRICE_CLASS_100,
+      logBucket: new Bucket(stack, 'MyCloudFrontDistributionLogsBucket', {
+        removalPolicy: RemovalPolicy.DESTROY,    
+        autoDeleteObjects: true,
+        objectOwnership: ObjectOwnership.OBJECT_WRITER
+      }),
       defaultBehavior: {
-        origin: new HttpOrigin(appFuncUrl.url, {
-          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,        
+        /**
+         * This split function should take a function url like this:
+         *    https://dg4qdeehraanv7q33ljsrfztae0fwyvz.lambda-url.us-east-2.on.aws/
+         * and extract its domain like this:
+         *    dg4qdeehraanv7q33ljsrfztae0fwyvz.lambda-url.us-east-2.on.aws
+         * 'https://' is removed (Note: trailing '/' is also removed)
+         */
+        origin: new HttpOrigin(Fn.select(2, Fn.split('/', appFuncUrl.url)), {
+          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+          httpsPort: 443,
+          originPath: '/',          
         }),
+        allowedMethods: AllowedMethods.ALLOW_ALL,
+        cachedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
         viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        edgeLambdas: [{
-          eventType: LambdaEdgeEventType.VIEWER_REQUEST,
-          functionVersion: edgeFunction.currentVersion,
-        }]
+        /**
+         * NOTE: VIEWER_REQUEST event type would have been preferable so that this lambda is hit despite what's in
+         * the cache. However, that means a 1 MB code limit, which seems to be exceeded, making ORIGIN_REQUEST the
+         * only choice with a 50 MB code limit. In order the lambda get hit for EVERY request, caching is disabled.
+         */
+        cachePolicy: CachePolicy.CACHING_DISABLED,
+        edgeLambdas: [
+          {
+            // eventType: LambdaEdgeEventType.VIEWER_REQUEST,
+            eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+            functionVersion: edgeFunctionOrigin.currentVersion,
+            includeBody: true
+          },
+          {
+            eventType: LambdaEdgeEventType.VIEWER_RESPONSE,
+            functionVersion: edgeFunctionViewer.currentVersion,
+          }
+        ]
       },
     });
 
-    // appFuncUrl.grantInvokeUrl(edgeFunction);
+    appFuncUrl.grantInvokeUrl(edgeFunctionOrigin);
   
   //   {
   //     "Version": "2012-10-17",

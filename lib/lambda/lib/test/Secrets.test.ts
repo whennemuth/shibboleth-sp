@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock'
 import 'aws-sdk-client-mock-jest';
-import { SecretsConfig, CachedKeys, checkCache } from '../lib/Secrets';
+import { SecretsConfig, CachedKeys, checkCache } from '../Secrets';
 import { Keys } from './Keys';
 import { GetSecretValueCommand, GetSecretValueCommandOutput, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 
@@ -38,10 +38,10 @@ else {
   // Create a mock of the client that talks to secrets manager. Have it return some dynamically created keys.
   smMockClient.on(GetSecretValueCommand).resolves({
     SecretString: JSON.stringify({
-      'jpkfld': keys.privateKey,
-      'jpufld': keys.publicKey,
-      'spkfld': keys.certificate,
-      'sctfld': keys.privateKey
+      'jpkfld': keys.privateKeyPEM,
+      'jpufld': keys.publicKeyPEM,
+      'spkfld': keys.certificatePEM,
+      'sctfld': keys.privateKeyPEM
     }, null, 2)
   } as GetSecretValueCommandOutput)
 

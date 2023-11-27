@@ -19,21 +19,22 @@
         "-r", "./node_modules/ts-node/register/transpile-only"
       ],
       "args": [
-        "${workspaceFolder}/lib/lambda/test/sp.testharness.ts",
+        "${workspaceFolder}/lib/lambda/FunctionSpOrigin.test.ts",
       ], 
       "env": {
+        "unmocked": "false",
         "AWS_PROFILE": "bu"
       }   
     },
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest sp",
+      "name": "Jest SP",
       "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
       "args": [ 
         "--runTestsByPath", 
         "-i", 
-        "${workspaceFolder}/lib/lambda/test/functionSP.test.ts" 
+        "${workspaceFolder}/lib/lambda/FunctionSpOrigin.test.ts" 
       ],
       "runtimeArgs": [ "--experimental-vm-modules" ],
       "console": "integratedTerminal",
@@ -47,12 +48,12 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest secrets",
+      "name": "Jest Secrets",
       "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
       "args": [ 
         "--runTestsByPath", 
         "-i", 
-        "${workspaceFolder}/lib/lambda/test/Secrets.test.ts" 
+        "${workspaceFolder}/lib/lambda/lib/test/Secrets.test.ts" 
       ],
       "runtimeArgs": [ "--experimental-vm-modules" ],
       "console": "integratedTerminal",
@@ -63,6 +64,33 @@
         "AWS_REGION": "us-east-2"
       }
     },
-
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Jwt",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [ 
+        "--runTestsByPath", 
+        "-i", 
+        "${workspaceFolder}/lib/lambda/lib/test/Jwt.test.ts" 
+      ],
+      "runtimeArgs": [ "--experimental-vm-modules" ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Saml",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [ 
+        "--runTestsByPath", 
+        "-i", 
+        "${workspaceFolder}/lib/lambda/lib/test/Saml.test.ts" 
+      ],
+      "runtimeArgs": [ "--experimental-vm-modules" ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
   ]
 }

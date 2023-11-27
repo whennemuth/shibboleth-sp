@@ -32,12 +32,12 @@ export interface Request {
 }
 
 export interface Headers {
-    host:         Host[];
-    "user-agent": Host[];
-    "user-name":  Host[];
+    host:         KeyValuePair[];
+    "user-agent": KeyValuePair[];
+    "user-name":  KeyValuePair[];
 }
 
-export interface Host {
+export interface KeyValuePair {
     key:   string;
     value: string;
 }

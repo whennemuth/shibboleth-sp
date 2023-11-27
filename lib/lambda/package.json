@@ -10,14 +10,16 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.433.0",
+    "@xmldom/xmldom": "^0.8.10",
     "http": "^0.0.1-security",
     "install": "^0.13.0",
     "jsonwebtoken": "^9.0.2",
+    "ms": "^3.0.0-canary.1",
     "npm": "^10.2.1",
     "saml2-js": "^4.0.2"
   },
   "devDependencies": {
-    "@types/saml2-js": "^3.0.3",
-    "@types/jsonwebtoken": "^9.0.4"
+    "@types/jsonwebtoken": "^9.0.4",
+    "@types/saml2-js": "^3.0.3"
   }
 }

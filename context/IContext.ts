@@ -18,12 +18,11 @@ export interface IContext {
 }
 
 export interface Shibboleth {
-    entityId:    string;
-    idpIssuer:   string;
-    entryPoint:  string;
-    callbackUrl: string;
-    logoutUrl:   string;
-    secret:      Secret;
+    entityId:   string;
+    idpCert:    string;
+    entryPoint: string;
+    logoutUrl:  string;
+    secret:     Secret;
 }
 
 export interface Secret {
@@ -217,9 +216,8 @@ const typeMap: any = {
     ], false),
     "Shibboleth": o([
         { json: "entityId", js: "entityId", typ: "" },
-        { json: "idpIssuer", js: "idpIssuer", typ: "" },
+        { json: "idpCert", js: "idpCert", typ: "" },
         { json: "entryPoint", js: "entryPoint", typ: "" },
-        { json: "callbackUrl", js: "callbackUrl", typ: "" },
         { json: "logoutUrl", js: "logoutUrl", typ: "" },
         { json: "secret", js: "secret", typ: r("Secret") },
     ], false),

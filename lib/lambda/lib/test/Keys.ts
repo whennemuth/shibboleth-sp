@@ -30,14 +30,32 @@ export class Keys {
     this._certificate = cert;
   }
 
-  public get privateKey(): string{
-    return forge.pki.privateKeyToPem(this._keys.privateKey);
+  private extractValueFromPEM = (pem:string) => {
+    return pem.replace(/[\r\n]/g, '').split(/\-{2,}/)[2];
+  }
+  public get privateKey(): string {
+    return this.extractValueFromPEM(this.privateKeyPEM);
   }
   public get publicKey(): string {
-    return forge.pki.publicKeyToPem(this._keys.publicKey);
+    return this.extractValueFromPEM(this.publicKeyPEM);
   }
   public get certificate(): string {
+    return this.extractValueFromPEM(this.certificatePEM);
+  }
+  public get privateKeyPEM(): string {
+    return forge.pki.privateKeyToPem(this._keys.privateKey);
+  }
+  public get publicKeyPEM(): string {
+    return forge.pki.publicKeyToPem(this._keys.publicKey);
+  }
+  public get certificatePEM(): string {
     return forge.pki.certificateToPem(this._certificate);
   }
-
+  public toString = () => {
+    return JSON.stringify({
+      privateKey: this.privateKey,
+      publicKey: this.publicKey,
+      certificate: this.certificate
+    }, null, 2); 
+  }
 }

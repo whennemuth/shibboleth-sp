@@ -1,7 +1,7 @@
 {
   "SCENARIO": "default",
   "STACK_ID": "shibsp",
-  "ACCOUNT": "037860335094",
+  "ACCOUNT": "770203350335",
   "REGION": "us-east-1",
   "LANDSCAPE": "shibtest",
   "SHIBBOLETH": {
@@ -10,12 +10,12 @@
     "entryPoint": "https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO",
     "logoutUrl": "https://shib-test.bu.edu/Shibboleth.sso/Logout",
     "secret": {
-      "_secretArn": "arn:aws:secretsmanager:us-east-2:037860335094:secret:dev/wp/shib-sp-test-JML3FN",
+      "_secretArn": "arn:aws:secretsmanager:us-east-1:770203350335:secret:dev/shibtest/keys-llKHON",
       "_refreshInterval": "3600000",
-      "samlPrivateKeySecretFld": "wp-sp-key",
-      "samlCertSecretFld": "wp-sp-cert",
-      "jwtPrivateKeySecretFld": "wp-jwt-prikey",
-      "jwtPublicKeySecretFld": "wp-jwt-pubkey"
+      "samlPrivateKeySecretFld": "shibtest-sp-key",
+      "samlCertSecretFld": "shibtest-sp-cert",
+      "jwtPrivateKeySecretFld": "shibtest-jwt-prikey",
+      "jwtPublicKeySecretFld": "shibtest-jwt-pubkey"
     }
   },
   "TAGS": {

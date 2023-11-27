@@ -1,7 +1,6 @@
 import { GetSecretValueCommand, GetSecretValueCommandOutput, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import * as context from '../../../context/context.json';
 
-const secretsClient = new SecretsManagerClient();
 const { _secretArn, _refreshInterval, samlCertSecretFld, samlPrivateKeySecretFld, jwtPublicKeySecretFld, jwtPrivateKeySecretFld } = context.SHIBBOLETH.secret;
 const refreshInterval = parseInt(_refreshInterval)
 
@@ -53,20 +52,26 @@ export async function checkCache(cache:CachedKeys, config?:SecretsConfig): Promi
   const now = Date.now();
   if (refreshable(cache, refreshInterval, now)) {
     try {
-      const command = new GetSecretValueCommand({ SecretId: _config._secretArn });
+      const { _secretArn, samlCertSecretFld, samlPrivateKeySecretFld, jwtPrivateKeySecretFld, jwtPublicKeySecretFld } = _config;
+      const command = new GetSecretValueCommand({ SecretId: _secretArn });
+      const region = _secretArn.split(':')[3];
+      const secretsClient = new SecretsManagerClient({ region });
       const response:GetSecretValueCommandOutput = await secretsClient.send(command);
       if( ! response.SecretString) {
         throw new Error('Empty/missing cert!');
       }
       const fieldset = JSON.parse(response.SecretString);
-      cache.samlCert = fieldset[_config.samlCertSecretFld];
-      cache.samlPrivateKey = fieldset[_config.samlPrivateKeySecretFld];
-      cache.jwtPublicKey = fieldset[_config.jwtPublicKeySecretFld];
-      cache.jwtPrivateKey = fieldset[_config.jwtPrivateKeySecretFld];
+      cache.samlCert = fieldset[samlCertSecretFld];
+      cache.samlPrivateKey = fieldset[samlPrivateKeySecretFld];
+      cache.jwtPublicKey = fieldset[jwtPublicKeySecretFld];
+      cache.jwtPrivateKey = fieldset[jwtPrivateKeySecretFld];
       cache._timestamp = now;
       console.log(`Retrieved shib cert from secrets manager in ${Date.now() - now} milliseconds`);
     } catch (e) {
       console.error(`Cannot get cert from secrets manager, error: ${e}`);
     }
+  }
+  else {
+    console.log('Using cache: certs & keys found in cache and before their stale date');
   }
 }
