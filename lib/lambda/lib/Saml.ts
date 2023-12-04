@@ -11,7 +11,13 @@ export type SamlToolsParms = {
    
 export type SamlResponseObject = {
   samlResponseParm:string|undefined,
-  xmlData:string|undefined
+  xmlData:string|undefined,
+  relayState:string|undefined
+}
+
+export type SendAssertResult = {
+  samlAssertResponse:SAMLAssertResponse|null,
+  relayState:string|null
 }
 
 export class SamlTools {
@@ -62,15 +68,15 @@ export class SamlTools {
   /**
    * The request indicates the user is not authenticated, and so needs to be redirected to a url for signin with the IDP.
    * https://www.npmjs.com/package/saml2-js#create_login_request_urlidp-options-cb
-   * @param originalRequestPath 
+   * @param relay_state 
    * @returns 
    */
-  public async createLoginRequestUrl(originalRequestPath:string): Promise<string> {
+  public async createLoginRequestUrl(relay_state:string): Promise<string> {
     return new Promise((resolve, reject) => {
       const sp = new ServiceProvider(this.sp_options);
       const idp = new IdentityProvider(this.idp_options);
       sp.create_login_request_url(idp, {
-        relay_state: originalRequestPath, 
+        relay_state, 
       }, (err, login_url, request_id) => {
         if(err) {
           reject(err);
@@ -83,6 +89,24 @@ export class SamlTools {
   }
 
   /**
+   * @returns The url to the IDP to logout.
+   */
+  public async createLogoutRequestUrl(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const sp = new ServiceProvider(this.sp_options);
+      const idp = new IdentityProvider(this.idp_options);
+      sp.create_logout_request_url(idp, { }, (err, logout_url) => {
+        if(err) {
+          reject(err);
+        }
+        else {
+          resolve(logout_url);
+        }        
+      });
+    })
+  }
+
+  /**
    * The saml response could come from the IDP as either a querystring parameter (GET), or as a 
    * form data parameter (POST). 
    * @param request 
@@ -92,12 +116,14 @@ export class SamlTools {
 
     let samlResponseParm;
     let xmlData;
+    let relayState;
 
     try {
       if(request.method === 'GET') {
         // Check query string for SAMLResponse
         const queryStringParams = request.querystring ? new URLSearchParams(request.querystring) : null;
         const samlResponseFromQueryString = queryStringParams ? queryStringParams.get('SAMLResponse') : null;
+        relayState = queryStringParams ? queryStringParams.get('RelayState') || undefined : undefined;
 
         if (samlResponseFromQueryString) {
           samlResponseParm = samlResponseFromQueryString;
@@ -119,7 +145,8 @@ export class SamlTools {
           // 2) Get the "SAMLResponse" parameter from within the body, url-decoded:
           const params = body ? new URLSearchParams(body) : null;
           samlResponseParm = params ? params.get('SAMLResponse') : null;
-          samlResponseParm = samlResponseParm ? decodeURI(samlResponseParm) : null;
+          samlResponseParm = samlResponseParm ? decodeURIComponent(samlResponseParm) : null;
+          relayState = params ? params.get('RelayState') || '' : '';
 
           if(samlResponseParm) {
             console.log('SAMLResponse parameter FOUND in request');
@@ -139,7 +166,7 @@ export class SamlTools {
       throw(e);
     }
     return {
-      samlResponseParm, xmlData
+      samlResponseParm, xmlData, relayState
     };
   }
 
@@ -150,21 +177,25 @@ export class SamlTools {
    * @param requestUrl 
    * @returns 
    */
-  public async sendAssert(request:any): Promise<SAMLAssertResponse|null> {
+  public async sendAssert(request:any): Promise<SendAssertResult> {
     return new Promise((resolve, reject) => {
       const sp = new ServiceProvider(this.sp_options);
       const idp = new IdentityProvider(this.idp_options);
       const parm = this.getSamlResponseParameter(request) as SamlResponseObject;
+      const { samlResponseParm, xmlData, relayState } = parm;
       const options = {
-        request_body: { SAMLResponse: parm.samlResponseParm }
+        request_body: { SAMLResponse: samlResponseParm }
       }
       const callback = (err:any, saml_assert_response:SAMLAssertResponse) => {
         if(err) {
           reject(err);
         }
         else {
-          const friendlyResponse:SAMLAssertResponse|null = getFriendlySamlResponse(parm, saml_assert_response);
-          resolve(friendlyResponse);
+          const friendlyResponse:SAMLAssertResponse|null = getFriendlySamlResponse(xmlData, saml_assert_response);
+          resolve({
+            samlAssertResponse: friendlyResponse,
+            relayState: relayState || null
+          });
         }        
       };
       if(request.method === 'POST') {
@@ -183,8 +214,8 @@ export class SamlTools {
    * to get the response, and can be applied to that response to overwrite the "unfriendly" names.
    * @param saml_assert_response 
    */
-  export function getFriendlySamlResponse (samlRespObj:SamlResponseObject, response:SAMLAssertResponse):SAMLAssertResponse|null {
-    const xml:XMLDocument = (new DOMParser()).parseFromString(samlRespObj.xmlData || '');
+  export function getFriendlySamlResponse (xmlData:string|undefined, response:SAMLAssertResponse):SAMLAssertResponse|null {
+    const xml:XMLDocument = (new DOMParser()).parseFromString(xmlData || '');
     const xmlChoices:HTMLCollectionOf<Element> = xml.getElementsByTagName('saml2:Attribute');
     const friendlyAttributes:any = { };
     const findFriendlyName = (unfriendlyName:string): string|null => {

@@ -28,45 +28,71 @@ export class JwtTools {
     this.clockTime = clockTime;
   }
 
-  public hasValidToken(request:any):boolean {
+  /**
+   * Get a specific member of the cookie header.
+   * @param request 
+   * @param cookieName 
+   * @returns 
+   */
+  public parseCookieValue(request:any, cookieName:string) {
+    const { cookie:cookieHeader } = request.headers;
+    const cookies = cookieHeader ? cookieHeader[0].value.split(';') : [];
+    for(const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === cookieName) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Determine if a request carries a valid jwt in its cookie header.
+   * @param request 
+   * @returns 
+   */
+  public hasValidToken(request:any):any {
     try {
-      if(request.headers[JwtTools.COOKIE_NAME]) {
-        let authToken:string = request.headers[JwtTools.COOKIE_NAME][0].value;
-        if(authToken.includes(';')) 
-          authToken = authToken.split(';')[0];
-        if(authToken.includes('='))
-          authToken = authToken.split('=')[1];
-        const verification = jwt.verify(authToken, this.publicKey, {
+      const { cookie } = request.headers;
+      if(cookie) {
+        let authToken:string = this.parseCookieValue(request, JwtTools.COOKIE_NAME);
+        const decoded = jwt.verify(authToken, this.publicKey, {
           algorithms: ['RS256'],
           clockTimestamp: this.clockTime
         });
+
         // If no error is thrown, then the token is valid
-        return true;
+        return decoded;
       }
-      return false;
+      return null;
     } 
     catch (error) {
-      return false;
+      return null;
     }
   }
 
+/**
+   * Place a jwt in a "set-cookie" response header.
+   * @param response 
+   * @param payload 
+   */
   public setCookieInResponse(response:any, payload:any) {
-    const jwtCookieOptions = {
-      maxAge: Math.floor(ms(this.expiresIn)/1000), // expiresIn, in seconds
-      httpOnly: true,
-      secure: true,
-    };
-
     const jwtToken = jwt.sign({ [JwtTools.TOKEN_NAME]: payload }, this.privateKey, {
       algorithm: 'RS256',
       expiresIn: this.expiresIn,
     });
 
-    const serializedOpts = Object.entries(jwtCookieOptions).map(([key, value]) => `${key}=${value}`).join('; ');
-
+    const maxAge = Math.floor(ms(this.expiresIn)/1000);
     response.headers['set-cookie'] = [{ 
       key: 'Set-Cookie', 
-      value: `${JwtTools.COOKIE_NAME}=${jwtToken}; ${serializedOpts}` 
+      value: `${JwtTools.COOKIE_NAME}=${jwtToken}; Max-Age=${maxAge}; Secure; HttpOnly` 
+    }];
+  }
+
+  public setCookieInvalidationInResponse(response:any) {
+    response.headers['set-cookie'] = [{
+      key: 'Set-Cookie',
+      value: `${JwtTools.COOKIE_NAME}=invalidated; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly`
     }];
   }
 }

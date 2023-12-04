@@ -228,15 +228,19 @@ export const getSampleSamlResponseXML = (certificate:string) => {
       .replace(/CERT_PLACEHOLDER/g, certificate);
 }
 
+const encode64 = (utf8:string) => {
+  return Buffer.from(utf8, 'utf8').toString('base64');
+}
+
 /**
  * Provides a mock SAMLResponse form data value that is returned by the IDP.
  * @param certificate 
  * @returns 
  */
-export const getSampleSamlResponseBase64 = (certificate:string) => {    
+export const getSampleSamlResponseBase64 = (certificate:string, relayState:string) => {    
   // fs.writeFileSync('SAMLResponse.xml', samlResponse);
-  const samlResponse = getSampleSamlResponseXML(certificate);
-  const bufferObj = Buffer.from(`SAMLResponse=${samlResponse}`, "utf8");
-  // const bufferObj = Buffer.from('<saml2p:Response/>', "utf8");
-  return bufferObj.toString("base64");
+  const samlResponseXml = getSampleSamlResponseXML(certificate);
+  const encodedSamlResponse = encodeURIComponent(encode64(samlResponseXml));
+  const encodedRelayState = encodeURIComponent(relayState);
+  return encode64(`RelayState=${encodedRelayState}&SAMLResponse=${encodedSamlResponse}`);
 }

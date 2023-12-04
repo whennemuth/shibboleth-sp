@@ -4,7 +4,7 @@ import { IContext } from '../context/IContext';
 import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { FunctionUrl, FunctionUrlAuthType, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { AllowedMethods, CachePolicy, Distribution, LambdaEdgeEventType, OriginProtocolPolicy, PriceClass, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
+import { AllowedMethods, CachePolicy, Distribution, LambdaEdgeEventType, OriginProtocolPolicy, OriginRequestPolicy, PriceClass, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
 import { Effect, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Bucket, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
 
@@ -14,11 +14,11 @@ export class LambdaShibbolethStackResources extends Construct {
 
     const context:IContext = stack.node.getContext('stack-parms');
 
-    // Lambda@Edge function
+    // Lambda@Edge origin request function
     const edgeFunctionOrigin = new NodejsFunction(stack, 'EdgeFunctionOrigin', {
       runtime: Runtime.NODEJS_18_X,
       entry: 'lib/lambda/FunctionSpOrigin.ts',
-      functionName: 'SPFunctionOrigin',
+      functionName: context.EDGE_REQUEST_ORIGIN_FUNCTION_NAME,
       bundling: {
         externalModules: [ '@aws-sdk/*' ],
       },
@@ -43,10 +43,11 @@ export class LambdaShibbolethStackResources extends Construct {
       }),
     });
 
+// Lambda@Edge viewer response function
     const edgeFunctionViewer = new NodejsFunction(stack, 'EdgeFunctionViewer',{
       runtime: Runtime.NODEJS_18_X,
       entry: 'lib/lambda/FunctionSpViewer.ts',
-      functionName: 'SPFunctionViewer',
+      functionName: context.EDGE_RESPONSE_VIEWER_FUNCTION_NAME,
     });
 
     // Simple lambda-based web app
@@ -54,7 +55,7 @@ export class LambdaShibbolethStackResources extends Construct {
       runtime: Runtime.NODEJS_18_X,
       entry: 'lib/lambda/FunctionApp.ts',
       timeout: Duration.seconds(10),
-      functionName: 'AppFunction',     
+      functionName: context.APP_FUNCTION_NAME,     
     });
 
     // Lambda function url for the web app.
@@ -94,6 +95,13 @@ export class LambdaShibbolethStackResources extends Construct {
          * only choice with a 50 MB code limit. In order the lambda get hit for EVERY request, caching is disabled.
          */
         cachePolicy: CachePolicy.CACHING_DISABLED,
+/** 
+         * NOTE: This origin request policy is necessary to get querystring in edge lambda events, and exclude the
+         * host header from the origing (the app lambda), which, coming from cloudfront would resemble something 
+         * similar to d12345678.cloudfront.net and would not be recognized by the Lambda, resulting in 403.
+         * SEE: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
+         */
+        originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         edgeLambdas: [
           {
             // eventType: LambdaEdgeEventType.VIEWER_REQUEST,
@@ -111,26 +119,7 @@ export class LambdaShibbolethStackResources extends Construct {
 
     appFuncUrl.grantInvokeUrl(edgeFunctionOrigin);
   
-  //   {
-  //     "Version": "2012-10-17",
-  //     "Statement": [
-  //         {
-  //             "Effect": "Allow",
-  //             "Principal": {
-  //               "Service": "cloudfront.amazonaws.com"
-  //             },
-  //             "Action": "lambda:InvokeFunctionUrl",
-  //             "Resource": "arn:aws:lambda:us-east-1:123456789012:function:my-function",
-  //             "Condition": {
-  //                 "StringEquals": {
-  //                     "lambda:FunctionUrlAuthType": "AWS_IAM"
-  //                 }
-  //             }
-  //         }
-  //     ]
-  // }
-
-    // Outputs
+      // Outputs
     new CfnOutput(stack, 'CloudFrontDistributionURL', {
       value: `https://${cloudFrontDistribution.distributionDomainName}`,
       description: 'CloudFront Distribution URL',

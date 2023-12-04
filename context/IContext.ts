@@ -8,13 +8,16 @@
 // match the expected interface, even if the JSON is valid.
 
 export interface IContext {
-    SCENARIO:   string;
-    STACK_ID:   string;
-    ACCOUNT:    string;
-    REGION:     string;
-    LANDSCAPE:  string;
-    SHIBBOLETH: Shibboleth;
-    TAGS:       Tags;
+    SCENARIO:                           string;
+    STACK_ID:                           string;
+    ACCOUNT:                            string;
+    REGION:                             string;
+    LANDSCAPE:                          string;
+    EDGE_REQUEST_ORIGIN_FUNCTION_NAME:  string;
+    EDGE_RESPONSE_VIEWER_FUNCTION_NAME: string;
+    APP_FUNCTION_NAME:                  string;
+    SHIBBOLETH:                         Shibboleth;
+    TAGS:                               Tags;
 }
 
 export interface Shibboleth {
@@ -211,6 +214,9 @@ const typeMap: any = {
         { json: "ACCOUNT", js: "ACCOUNT", typ: "" },
         { json: "REGION", js: "REGION", typ: "" },
         { json: "LANDSCAPE", js: "LANDSCAPE", typ: "" },
+{ json: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", js: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", typ: "" },
+        { json: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", js: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", typ: "" },
+        { json: "APP_FUNCTION_NAME", js: "APP_FUNCTION_NAME", typ: "" },
         { json: "SHIBBOLETH", js: "SHIBBOLETH", typ: r("Shibboleth") },
         { json: "TAGS", js: "TAGS", typ: r("Tags") },
     ], false),

@@ -11,8 +11,10 @@ const samlToolParms = {
   entryPoint: 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO',
   logoutUrl: 'https://shib-test.bu.edu/Shibboleth.sso/Logout'
 } as SamlToolsParms;
+const domain = 'd129tjsl6pgy8.cloudfront.net';
+const relayState = '/path/to/app'
 const samlTools = new SamlTools(samlToolParms);
-samlTools.setAssertUrl('https://test.kualitest.research.bu.edu/auth/saml/consume?redirect_to=/auth/authorize');
+samlTools.setAssertUrl(`https://${domain}/assert?RelayState=${relayState}`);
 
 const keys = new Keys();
 samlTools.setPrivateKey(keys.privateKeyPEM);
@@ -20,9 +22,9 @@ samlTools.setSpCertificate(keys.certificatePEM);
 
 // Authentication has succeeded, and the IDP has issued a SAMLResponse form parameter in a 302 request.
 // This is a mock of such a request.
-const samlCallbackRequest = {
-  uri: '/auth/saml/consume',
-  querystring: 'redirect_to=/auth/authorize',
+const mockSamlCallbackRequest = {
+  uri: '/assert',
+  querystring: '',
   method: "POST",
   statusCode: '302',
   clientIp: "2001:cdba::3257:9652",
@@ -32,13 +34,13 @@ const samlCallbackRequest = {
     encoding: 'base64',
     inputTruncated: false,
     action: 'read-only',
-    data: getSampleSamlResponseBase64(keys.certificate),
+    data: getSampleSamlResponseBase64(keys.certificate, relayState),
   },
   headers: {
     host: [
       {
         key: 'Host',
-        value: 'https://test.kualitest.research.bu.edu'
+        value: `https://${domain}`
       }
     ],
     'user-agent': [
@@ -62,12 +64,45 @@ const samlCallbackRequest = {
   }
 } as Request
 
+// Mock the post_assert function
+ServiceProvider.prototype.post_assert = (idp, options, callback) => {
+ callback(null, { 
+    response_header: { 
+      id: '_abc-1',
+      destination: `https://${domain}/assert`,
+      in_response_to: '_706217a6cee7dbf456f1',
+      version: '2.0' 
+    },
+    type: 'authn_response',
+    user: { 
+      name_id: 'nameid',
+      session_index: '_abc-3',
+      attributes: { 
+        'eduPersonPrimaryAffiliation': [ 'staff' ],
+        'sn': [ 'Hennemuth' ],
+        'eduPersonPrincipalName': [ 'wrh@bu.edu' ],
+        'title': [ 'Lead Analyst, Programmer' ],
+        'mail': [ 'wrh@bu.edu' ],
+        'eduPersonAffiliation': [ 'member', 'staff' ],
+        'buPrincipal': [ 'wrh' ],
+        'givenName': [ 'Warren' ],
+        'o': [ 'IS&T APPLICATIONS - Res. Adm. Web and .NET' ],
+        'eduPersonEntitlement': [
+          'http://iam.bu.edu/sp/amazon-730096353738-InfraMgt',
+          'another', 'and', 'another', 'and', 'so on...'
+        ]
+      } 
+    }
+  });       
+}
+
+
 describe('Saml', () => {
 
-  let samlResponse: SamlResponseObject | null
-  ;
+  let samlResponse: SamlResponseObject | null;
+
   it('Should create the expected login url', async () => {
-    const loginUrl = await samlTools.createLoginRequestUrl('/app/requested/path');
+    const loginUrl = await samlTools.createLoginRequestUrl('https://d129tjsl6pgy8.cloudfront.net/some/path');
     expect(loginUrl).toBeDefined();
     const expectedStart = `${samlToolParms.entryPoint}?SAMLRequest=`
     const actualStart = loginUrl.substring(0, expectedStart.length);
@@ -77,72 +112,23 @@ describe('Saml', () => {
   it('Should detect a samlResponse in the querystring of a request', () => {
     samlResponse = samlTools.getSamlResponseParameter({
       method: 'GET',
-      uri: '/auth/saml/consume',
-      querystring: 'redirect_to=/auth/authorize&SAMLResponse=testing'
+      uri: '/assert',
+      querystring: `RelayState=${relayState}&SAMLResponse=testing`
     });
     expect(samlResponse?.samlResponseParm).toEqual('testing');
   });
 
   it('Should detect a samlResponse in form data parameter of a request', () => {
-    samlResponse = samlTools.getSamlResponseParameter(samlCallbackRequest);
+    samlResponse = samlTools.getSamlResponseParameter(mockSamlCallbackRequest);
     expect(samlResponse).toBeDefined();
     const bufferObj = Buffer.from(samlResponse?.samlResponseParm || '', "base64");
     const decoded = bufferObj.toString("utf8");
     expect(decoded).toContain('<saml2:AttributeValue');
   });
 
-  it('Should produce the expected SAMLAssertResponse', async () => {
-    /**
-     * For some reason, the saml2-js.ServiceProvider object cannot be mocked, spyied on or have its prototype
-     * directly modified to mock the redirect_assert method. For some reason, an endless stack recursion issue arises
-     * that cannot be traced back to a cause.
-     */
-    const bugged = true;
-    if(bugged) {
-      expect(1).toEqual(1)
-      return;
-    }
-    // As mentioned above, figure out how to make this work.
-    ServiceProvider.prototype.redirect_assert = (idp, options): SAMLAssertResponse => {
-      return { 
-        response_header: { 
-          id: '_abc-1',
-          destination: 'https://test.kualitest.research.bu.edu/auth/saml/consume?redirect_to=/auth/authorize',
-          in_response_to: '_706217a6cee7dbf456f1' 
-        },
-        type: 'authn_response',
-        user: { 
-          name_id: 'nameid',
-          session_index: '_abc-3',
-          attributes: { 
-            'eduPersonPrimaryAffiliation': [ 'staff' ],
-            'sn': [ 'Hennemuth' ],
-            'eduPersonPrincipalName': [ 'wrh@bu.edu' ],
-            'title': [ 'Lead Analyst, Programmer' ],
-            'mail': [ 'wrh@bu.edu' ],
-            'eduPersonAffiliation': [ 'member', 'staff' ],
-            'buPrincipal': [ 'wrh' ],
-            'givenName': [ 'Warren' ],
-            'o': [ 'IS&T APPLICATIONS - Res. Adm. Web and .NET' ],
-            'eduPersonEntitlement': [
-              'http://iam.bu.edu/sp/amazon-730096353738-InfraMgt',
-              'another', 'and', 'another', 'and', 'so on...'
-            ]
-          } 
-        }
-      } as SAMLAssertResponse        
-    }
-    // const samlAssertResponse = await samlTools.redirectAssert(samlResponse);
-    const samlAssertResponse = await samlTools.sendAssert(samlResponse);
-    expect(samlAssertResponse).toBeDefined();
-  });
-
   it('Should be able to properly restore friendly attribute names', () => {
     const xmlData = getSampleSamlResponseXML('dummy-cert');
-    const friendly:SAMLAssertResponse|null = getFriendlySamlResponse({
-      samlResponseParm: undefined,
-      xmlData
-    }, MockSamlAssertResponse);
+    const friendly:SAMLAssertResponse|null = getFriendlySamlResponse(xmlData, MockSamlAssertResponse);
     expect(friendly).toBeDefined();
     expect(friendly).not.toBeNull();
     const attributes = friendly?.user.attributes;
@@ -165,6 +151,13 @@ describe('Saml', () => {
       expect(eduPersonPrimaryAffiliation[0]).toEqual('staff');
       expect(fn).toEqual('Warren');
     }
-  })
+  });
+
+  it('Should produce the expected SAMLAssertResponse', async () => {
+    const samlAssertResponse = await samlTools.sendAssert(mockSamlCallbackRequest);
+    expect(samlAssertResponse).toBeDefined();
+    expect(samlAssertResponse.relayState).toEqual(relayState);
+    expect(samlAssertResponse.samlAssertResponse?.user.attributes?.buPrincipal[0]).toEqual('wrh');
+  });
 });
 

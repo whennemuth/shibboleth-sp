@@ -18,6 +18,12 @@ export const handler =  async (event:any) => {
       }
     }
 
+    response.body = '<html> \
+      <body> \
+        <h1>This is the application origin</h1> \
+      </body> \
+    </html>';
+    
     return response;
   } 
   catch (error:any) {
