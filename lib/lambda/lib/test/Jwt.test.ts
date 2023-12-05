@@ -21,7 +21,7 @@ const mockRequest = {
     "user-agent": [],
     "user-name": [],
     host: [],
-    [JwtTools.COOKIE_NAME]: []
+    cookie: []
   }
 } as Request;
 
@@ -39,9 +39,9 @@ describe('Jwt', () => {
 
   it('Should see the token in the cookie as verifiable', () => {
     const authToken = cookieHeader[0].value.split(';')[0].split('=')[1];
-    (mockRequest.headers as Headers|any)[JwtTools.COOKIE_NAME].push({
-      key: 'does_not_matter',
-      value: authToken
+    (mockRequest.headers as Headers|any).cookie.push({
+      key: 'Cookie',
+      value: `${JwtTools.COOKIE_NAME}=${authToken}`
     });
     expect(jwtTools.hasValidToken(mockRequest)).toBeTruthy();
   });

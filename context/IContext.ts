@@ -214,7 +214,7 @@ const typeMap: any = {
         { json: "ACCOUNT", js: "ACCOUNT", typ: "" },
         { json: "REGION", js: "REGION", typ: "" },
         { json: "LANDSCAPE", js: "LANDSCAPE", typ: "" },
-{ json: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", js: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", typ: "" },
+        { json: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", js: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", typ: "" },
         { json: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", js: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", typ: "" },
         { json: "APP_FUNCTION_NAME", js: "APP_FUNCTION_NAME", typ: "" },
         { json: "SHIBBOLETH", js: "SHIBBOLETH", typ: r("Shibboleth") },

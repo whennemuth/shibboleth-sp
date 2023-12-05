@@ -43,7 +43,7 @@ export class LambdaShibbolethStackResources extends Construct {
       }),
     });
 
-// Lambda@Edge viewer response function
+    // Lambda@Edge viewer response function
     const edgeFunctionViewer = new NodejsFunction(stack, 'EdgeFunctionViewer',{
       runtime: Runtime.NODEJS_18_X,
       entry: 'lib/lambda/FunctionSpViewer.ts',
@@ -62,7 +62,7 @@ export class LambdaShibbolethStackResources extends Construct {
     const appFuncUrl = new FunctionUrl(appFunction, 'Url', {
       function: appFunction,
       // authType: FunctionUrlAuthType.AWS_IAM,
-      authType: FunctionUrlAuthType.NONE,
+      authType: FunctionUrlAuthType.NONE,      
     })
 
     // CloudFront Distribution
@@ -95,7 +95,7 @@ export class LambdaShibbolethStackResources extends Construct {
          * only choice with a 50 MB code limit. In order the lambda get hit for EVERY request, caching is disabled.
          */
         cachePolicy: CachePolicy.CACHING_DISABLED,
-/** 
+        /** 
          * NOTE: This origin request policy is necessary to get querystring in edge lambda events, and exclude the
          * host header from the origing (the app lambda), which, coming from cloudfront would resemble something 
          * similar to d12345678.cloudfront.net and would not be recognized by the Lambda, resulting in 403.
@@ -119,7 +119,7 @@ export class LambdaShibbolethStackResources extends Construct {
 
     appFuncUrl.grantInvokeUrl(edgeFunctionOrigin);
   
-      // Outputs
+    // Outputs
     new CfnOutput(stack, 'CloudFrontDistributionURL', {
       value: `https://${cloudFrontDistribution.distributionDomainName}`,
       description: 'CloudFront Distribution URL',

@@ -11,6 +11,17 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "favicon",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "args": [
+        "${workspaceFolder}/bin/favicon.js",
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "sp-test-harness",
       "skipFiles": [
         "<node_internals>/**"
@@ -25,6 +36,24 @@
         "unmocked": "false",
         "AWS_PROFILE": "bu"
       }   
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Lambda version cleanup",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "runtimeArgs": [
+        "-r", "./node_modules/ts-node/register/transpile-only"
+      ],
+      "args": [
+        "${workspaceFolder}/bin/LambdaVersionCleanup.ts",
+        "dryrun"
+      ] , 
+      "env": {
+        "AWS_PROFILE": "bu"
+      } 
     },
     {
       "type": "node",

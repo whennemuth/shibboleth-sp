@@ -1,5 +1,5 @@
 export MSYS_NO_PATHCONV=1
-FUNCTION_NAME="SPFunctionViewer"
+FUNCTION_NAME="SPFunctionOrigin"
 for region in $(aws --output text  ec2 describe-regions | cut -f 4)
 do
   region="$(echo $region | grep -P '[a-z0-9\-]+')"

@@ -108,19 +108,6 @@ export const handler =  async (event:any) => {
         relayState = decodeURIComponent(relayState || rootUrl);
         if( ! samlAssertResponse) break;
                 
-        /**
-         * RESUME NEXT: 
-         * 
-         * 1) Deploy and test full authentication, final passthrough to origin, and get cookie to save.
-         * 
-         * 2) Once the cookie gets saved, ensure that refreshes no longer trigger authentication.
-         * 
-         * 3) Put logout button in origin html
-         * 
-         * 4) Update the readme.md file (use some graphics)
-         * 
-         * 5) Complete any unfinished jest tests. 
-         */
         debugPrint(message);
 
         console.log(`relayState: ${relayState}`);
@@ -155,18 +142,12 @@ export const handler =  async (event:any) => {
         break;
 
       case '/favicon.ico':
-        // const base64Ico = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AcxV/TSkUqDnYQcchQXbSLijiWViyChdJWaNXB5NIvaNKQpLg4Cq4FBz8Wqw4uzro6uAqC4AeIq4uToouU+L+k0CLGg+N+vLv3uHsHCK0aU81ADFA1y8gk42K+sCoGXxGCHwGImJSYqaeyizl4jq97+Ph6F+VZ3uf+HINK0WSATySOMd2wiDeI5zYtnfM+cZhVJIX4nHjKoAsSP3JddvmNc9lhgWeGjVwmQRwmFss9LPcwqxgq8SxxRFE1yhfyLiuctzirtQbr3JO/MFTUVrJcpzmGJJaQQpo6ktFAFTVYiNKqkWIiQ/txD/+o40+TSyZXFYwcC6hDheT4wf/gd7dmaWbaTQrFgb4X2/4YB4K7QLtp29/Htt0+AfzPwJXW9ddbwPwn6c2uFjkChraBi+uuJu8BlzvAyJMuGZIj+WkKpRLwfkbfVACGb4GBNbe3zj5OH4AcdbV8AxwcAhNlyl73eHd/b2//nun09wOl3XK7fzzCVAAAAAZiS0dEAPcA0QAGZn/NAAAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+cMAwYTIqDSv7EAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAB50lEQVRYw+2XsWsUQRSHvzczewkSBIlCUihYSEQwBkFRMJDKVhBSBISUCgYr04j5C9JYaJ3C3kZCwEoU7MRclTbBQgshkkLvbnfeszg0t5c7o3eb3Savm52dmW/e/H7DGzEwKgxHxVE5QOhsNOq1UhYdvdLqDSB7xshs2nvUWbDzYJeFeMsTL7mSj+AzyDtwL4xkISNZz6rVgH+iyJ4dLUBcdTTqNRqfajTfJtiC5Ppl10rKgAM7JcQbXb+PSbEu6J8KcLuG/6B/PumSoOPDA0jnTdh8n/R3QUfoY0c6H7DR4W04kAhly/CbsZBLfDCAdSPcjySvs6PVQFx1pLdDe6cR3DcjeZYhG+2t+xXFr+ynM33pidP+gFNG5tLcnP+fAWmj6oSgN4UiI/xz2lsgXxT3RssD8MuKX2717be7gryy8kX4e/F4x5V3BJwBuwA2Leg1Rzbj8dtaLICdlNJqguOSrBiArtHS7G3fvLWkOAA70VUfbB+0pPuaF6qNFZgBPS0w1bG550rYjMhPgxTcjuLX8gB6Tga0YR8PZQ894VFst79DWIwEYm/gB4JOumJFmM164tPDp7F7QroYhriI/iLEdD4Qryv+o+LqhmwZ/ACbEmxGiFcd8aIDf0hFVMXDRI4fp1UD/AJxjqN8NNTlNgAAAABJRU5ErkJggg==';
-        // response = {
-        //   status: 200,
-          //   statusDescription: 'OK',
-          //   headers: {
-        //     'content-type': [{ key: 'Content-Type', value: 'image/png' }],
-        //     // 'content-type': [{ key: 'Content-Type', value: 'data:image/png;base64' }],
-        //     // 'content-length': [{ key: 'Content-Length', value: `${base64Ico.length}` }],
-        //   },
-        //   body: base64Ico
-        // }
-        console.log('favicon.ico: pass straight through to origin without authentication');
+        // This path just dirties up logs, so intercept it here and return a blank.
+        // Can't seem to get an actual favicon.ico to work from here anyway.
+        response = {
+          status: 200,
+          statusDescription: 'OK',
+        }    
         break;
 
       default:

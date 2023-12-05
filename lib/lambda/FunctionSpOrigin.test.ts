@@ -3,7 +3,6 @@ import { handler } from './FunctionSpOrigin';
 import { CachedKeys } from './lib/Secrets';
 import * as event from './lib/sp-event.json';
 import { SamlResponseObject, SendAssertResult } from './lib/Saml';
-import { JwtTools } from './lib/Jwt';
 import { MockSamlAssertResponse } from './lib/test/SamlAssertResponseFriendlyMock';
 
 

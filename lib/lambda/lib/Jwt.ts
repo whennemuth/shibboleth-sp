@@ -60,7 +60,7 @@ export class JwtTools {
           algorithms: ['RS256'],
           clockTimestamp: this.clockTime
         });
-
+        
         // If no error is thrown, then the token is valid
         return decoded;
       }
@@ -71,7 +71,7 @@ export class JwtTools {
     }
   }
 
-/**
+  /**
    * Place a jwt in a "set-cookie" response header.
    * @param response 
    * @param payload 

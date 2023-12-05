@@ -8,22 +8,15 @@
 export const handler =  async (event:any) => {
 
   try {
-    const response = event.Records[0].cf.response;
-    const json = JSON.stringify(event, null, 2);
-    console.log(json);
+    console.log(JSON.stringify(event, null, 2));
 
-    if(response.headers && response.headers['content-type']) {
-      if (response.headers['content-type'][0].value === 'application/json') {
-        response.headers['content-type'][0].value = 'text/html';
-      }
+    const { request } = event.Records[0].cf;
+    const { response } = event.Records[0].cf;
+
+    if(response.headers['content-type'] && response.headers['content-type'][0].value === 'application/json') {
+      response.headers['content-type'][0].value = 'text/html';
     }
 
-    response.body = '<html> \
-      <body> \
-        <h1>This is the application origin</h1> \
-      </body> \
-    </html>';
-    
     return response;
   } 
   catch (error:any) {

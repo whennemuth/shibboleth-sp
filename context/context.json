@@ -4,7 +4,7 @@
   "ACCOUNT": "037860335094",
   "REGION": "us-east-1",
   "LANDSCAPE": "shibtest",
-"EDGE_REQUEST_ORIGIN_FUNCTION_NAME": "SPFunctionOrigin",
+  "EDGE_REQUEST_ORIGIN_FUNCTION_NAME": "SPFunctionOrigin",
   "EDGE_RESPONSE_VIEWER_FUNCTION_NAME": "SPFunctionViewer",
   "APP_FUNCTION_NAME": "AppFunction",
   "SHIBBOLETH": {
