@@ -71,7 +71,6 @@ ServiceProvider.prototype.post_assert = (idp, options, callback) => {
       id: '_abc-1',
       destination: `https://${domain}/assert`,
       in_response_to: '_706217a6cee7dbf456f1',
-      version: '2.0' 
     },
     type: 'authn_response',
     user: { 
