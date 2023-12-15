@@ -4,6 +4,7 @@ import { CachedKeys } from './lib/Secrets';
 import * as event from './lib/sp-event.json';
 import { SamlResponseObject, SendAssertResult } from './lib/Saml';
 import { MockSamlAssertResponse } from './lib/test/SamlAssertResponseFriendlyMock';
+import { JwtTools } from './lib/Jwt';
 
 
 const distributionDomainName = 'd129tjsl6pgy8.cloudfront.net';
@@ -95,7 +96,7 @@ jest.mock('./lib/Saml', () => {
 /**
  * Mock the behavior of JwtTools
  */
-let validToken = true;
+let validToken: any;
 const cookie_invalidation = 'COOKIE_NAME=invalidated; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly';
 jest.mock('./lib/Jwt', () => {
   if(process.env?.unmocked === 'true') {
@@ -106,7 +107,7 @@ jest.mock('./lib/Jwt', () => {
       return {
         resetPrivateKey: (key:string) => jest.fn(),
         resetPublicKey: (key:string) => jest.fn(),
-        hasValidToken: (request:any):boolean => {
+        hasValidToken: (request:any):any => {
           return validToken;
         },
         setCookieInResponse: (response:any, payload:any) => {
@@ -199,7 +200,7 @@ else {
   describe('Origin request lambda event handler', () => {
 
     it('Should redirect to the login path if the original path is to the app and no valid JWT token', async () => {
-      validToken = false;
+      validToken = null;
       const event = getEssentialEvent();
       const response = await handler(event);
       expect(response.status).toEqual('302');
@@ -213,7 +214,7 @@ else {
     });
 
     it('Should terminate if the original path is to the app, no JWT token, and an "after_auth" parameter is "true"', async () => {
-      validToken = false;
+      validToken = null;
       const event = getEssentialEvent();
       event.Records[0].cf.request.uri = '/some/path';
       event.Records[0].cf.request.querystring = 'after_auth=true';
@@ -262,8 +263,13 @@ else {
     });
 
     it('Should simply forward to the origin if a valid token in header', async () => {
-      validToken = true;
+      // At this point in the auth flow, the assert callback is taking place and a token should be present as a header:
+      validToken = {
+        sub: MockSamlAssertResponse.user.name_id, 
+        user: MockSamlAssertResponse.user.attributes
+      };
       const event = getEssentialEvent();
+      // Object.defineProperty(event.Records[0].cf.request.headers, JwtTools.TOKEN_NAME, [{ key: JwtTools.TOKEN_NAME, value: tokenValue }]);      
       let response:any = await handler(event);
       expect(response).toEqual(event.Records[0].cf.request);
     });
