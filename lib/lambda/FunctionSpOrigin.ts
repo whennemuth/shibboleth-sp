@@ -156,11 +156,31 @@ export const handler =  async (event:any) => {
         if (validToken) {
           // Tokens are valid, so consider the user authenticated and pass through to the origin.
           console.log('Request has valid JWT');
+
+          const { user: { eduPersonPrincipalName, buPrincipal, eduPersonAffiliation, eduPersonEntitlement } } = validToken;
+
           response = originRequest;
           response.headers['user-details'] = [{
             key: "User-Details",
             value: `${Buffer.from(JSON.stringify(validToken, null, 2)).toString('base64')}`
           }];
+          response.headers['eduPersonPrincipalName'] = [{
+            key: 'eduPersonPrincipalName',
+            value: eduPersonPrincipalName
+          }];
+          response.headers['buPrincipal'] = [{
+            key: 'buPrincipal',
+            value: buPrincipal
+          }];
+          response.headers['eduPersonAffiliation'] = [{
+            key: 'eduPersonAffiliation',
+            value: eduPersonAffiliation.join(';')
+          }];
+          response.headers['eduPersonEntitlement'] = [{
+            key: 'eduPersonEntitlement',
+            value: eduPersonEntitlement.join(';')
+          }];
+
           response.headers['root-url'] = [{
             key: 'Root-URL',
             value: encodeURIComponent(rootUrl)
