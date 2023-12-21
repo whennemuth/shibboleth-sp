@@ -60,9 +60,9 @@ export const handler =  async (event:any) => {
     
     switch(uri) {
       case '/login':
-                console.log('User is not authenticated, initiate SAML authentication...');
+        console.log('User is not authenticated, initiate SAML authentication...');
         var relayState:string|null = decodeURIComponent(qsparms ? qsparms.get('relay_state') || '' : rootUrl);
-                const loginUrl = await samlTools.createLoginRequestUrl(relayState);
+        const loginUrl = await samlTools.createLoginRequestUrl(relayState);
         response = {
           status: '302',
           statusDescription: 'Found',
@@ -102,7 +102,7 @@ export const handler =  async (event:any) => {
         break;
 
       case '/assert':
-                const result:SendAssertResult|null = await samlTools.sendAssert(originRequest);
+        const result:SendAssertResult|null = await samlTools.sendAssert(originRequest);
         const message = `Authentication successful. result: ${JSON.stringify(result, null, 2)}`
         var { samlAssertResponse, relayState } = result;
         relayState = decodeURIComponent(relayState || rootUrl);
@@ -212,7 +212,7 @@ export const handler =  async (event:any) => {
           else {
             // No valid token has been found, and this is not a post authentication redirect - send user to login.
             const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
-                        const location = `${rootUrl}/login?relay_state=${relay_state}`;
+            const location = `${rootUrl}/login?relay_state=${relay_state}`;
             response = {
               status: '302',
               statusDescription: 'Found',
