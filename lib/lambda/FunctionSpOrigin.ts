@@ -46,6 +46,7 @@ export const handler =  async (event:any) => {
 
   const originRequest = event.Records[0].cf.request;
   const cloudfrontDomain = event.Records[0].cf.config.distributionDomainName;
+
   const rootUrl = `https://${cloudfrontDomain}`;
   samlTools.setAssertUrl(`${rootUrl}/assert`);
 
@@ -102,7 +103,7 @@ export const handler =  async (event:any) => {
         break;
 
       case '/assert':
-                const result:SendAssertResult|null = await samlTools.sendAssert(originRequest);
+        const result:SendAssertResult|null = await samlTools.sendAssert(originRequest);
         const message = `Authentication successful. result: ${JSON.stringify(result, null, 2)}`
         var { samlAssertResponse, relayState } = result;
         relayState = decodeURIComponent(relayState || rootUrl);
@@ -157,6 +158,7 @@ export const handler =  async (event:any) => {
           // Tokens are valid, so consider the user authenticated and pass through to the origin.
           console.log('Request has valid JWT');
           response = originRequest;
+          response.headers.authenticated = 'true';
 
           // Send the entire token in a single header
           response.headers['user-details'] = [{
@@ -187,7 +189,10 @@ export const handler =  async (event:any) => {
           response.headers['root-url'] = [{
             key: 'Root-URL',
             value: encodeURIComponent(rootUrl)
-          }]
+          }];
+
+          response.status = 200;
+
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         } 
         else if(afterAuth.toLocaleLowerCase() === 'true') {
