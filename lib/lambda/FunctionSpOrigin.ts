@@ -158,7 +158,7 @@ export const handler =  async (event:any) => {
           // Tokens are valid, so consider the user authenticated and pass through to the origin.
           console.log('Request has valid JWT');
           response = originRequest;
-          response.headers.authenticated = 'true';
+          response.headers['authenticated'] = 'true';
 
           // Send the entire token in a single header
           response.headers['user-details'] = [{
@@ -167,7 +167,7 @@ export const handler =  async (event:any) => {
           }];
 
           // Also send the individual claims in separate headers, as mod_shib would.
-          const { user: { eduPersonPrincipalName, buPrincipal, eduPersonAffiliation, eduPersonEntitlement } } = validToken;
+          const { user: { eduPersonPrincipalName, buPrincipal, eduPersonAffiliation, eduPersonEntitlement } } = validToken[JwtTools.TOKEN_NAME];
 
           response.headers['eduPersonPrincipalName'] = [{
             key: 'eduPersonPrincipalName',
@@ -225,7 +225,7 @@ export const handler =  async (event:any) => {
           }
         break;
     }
-
+    
     return response;
   } 
   catch (error:any) {

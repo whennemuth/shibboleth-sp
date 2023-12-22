@@ -99,12 +99,15 @@ jest.mock('./lib/Saml', () => {
 let validToken: any;
 const cookie_invalidation = 'COOKIE_NAME=invalidated; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly';
 jest.mock('./lib/Jwt', () => {
+  const originalModule = jest.requireActual('./lib/Jwt') as JwtTools;
   if(process.env?.unmocked === 'true') {
-    return jest.requireActual('./lib/Jwt');
+    return originalModule;
   }
   return {
     JwtTools: jest.fn().mockImplementation(() => {
       return {
+        __esModule: true,
+        ...originalModule, 
         resetPrivateKey: (key:string) => jest.fn(),
         resetPublicKey: (key:string) => jest.fn(),
         hasValidToken: (request:any):any => {
@@ -125,7 +128,8 @@ jest.mock('./lib/Jwt', () => {
       }
     })
   }
-})
+});
+
 
 /**
  * ---------------------------------------------------------------------------
@@ -182,7 +186,8 @@ else {
               headers: {
                 host: [ { key: 'Host', value: 'wp3ewvmnwp5nkbh3ip4qulkwyu0qoglu.lambda-url.us-east-1.on.aws' } ],
                 origin: [ { key: 'origin', value: 'https://localhost/me/at/my/laptop' } ],
-                TEST_SCENARIO: [] as any
+                TEST_SCENARIO: [] as any,
+                cookie: [] as any
               },
               method: 'GET',
               origin: {
@@ -265,12 +270,14 @@ else {
     it('Should simply forward to the origin if a valid token in header', async () => {
       // At this point in the auth flow, the assert callback is taking place and a token should be present as a header:
       validToken = {
+        [JwtTools.TOKEN_NAME]: {
         sub: MockSamlAssertResponse.user.name_id, 
         user: MockSamlAssertResponse.user.attributes
+        }
       };
+      const COOKIE_NAME = JwtTools.COOKIE_NAME;
       const event = getEssentialEvent();
-      // Object.defineProperty(event.Records[0].cf.request.headers, JwtTools.TOKEN_NAME, [{ key: JwtTools.TOKEN_NAME, value: tokenValue }]);      
-      let response:any = await handler(event);
+            let response:any = await handler(event);
       expect(response).toEqual(event.Records[0].cf.request);
     });
 
