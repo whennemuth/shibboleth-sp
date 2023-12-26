@@ -14,47 +14,76 @@ The "adapter" functionality allows container A to simulate cloudfront@edge, by t
 
 ### Steps to run:
 
-**METHOD A: Run VSCODE launch configuration:**
-
-This is one method that helps with debugging for container A.
-In file `.vscode/launch.json` contains:
-
-```
-{
-      "type": "node",
-      "request": "launch",
-      "name": "sp-express-app",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "args": [
-        "${workspaceFolder}/docker/index.js",
-      ], 
-      "env": {
-        "AWS_PROFILE": "bu",
-        "TZ": "utc",
-        "LOCAL_DOMAIN_AND_PORT": "localhost:5000"
-      }   
-    }
-```
-
-1. **Set credentials**:
-   One of the tasks performed by the lambda@edge origin request function is to make a call to secrets manager to acquire secrets for shibboleth and JWT tokens. The `AWS_PROFILE` environment variable can be changed to reflect the appropriate credentials in your `~/.aws/credentials` file. Or you can swap  `AWS_PROFILE` out entirely for `AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY`, & `AWS_SESSION_TOKEN` values.
-2. **Launch**:
-   Run the launch configuration and navigate to https://localhost:5000/some/path?qs=some_value
-
-
-
-**METHOD B: Run containers:**
-
-*NOTE: These steps focus on just plain docker and are temporary until docker-compose is introduced - WORK IN PROGRESS.*
-
-1. From the root of the project, navigate to the docker directory
-
-2. Use npm to run container A
+1. **Install:**
+   Install dependencies for the main module and all nested modules:
 
    ```
-   npm run up
+   npm run install-all
    ```
 
-   
+2. **Run:**
+
+   - **METHOD A:**
+     This is one method that facilitates step debugging with a vscode launch configuration. 
+     It can be found In `.vscode/launch.json`:
+
+     ```
+     {
+       "type": "node",
+       "request": "launch",
+       "name": "sp-express-app",
+       "skipFiles": [
+         "<node_internals>/**"
+       ],
+       "args": [
+         "${workspaceFolder}/docker/index.js",
+       ], 
+       "env": {
+         "AWS_PROFILE": "bu",
+         "TZ": "utc",
+         "LOCAL_DOMAIN_AND_PORT": "localhost:5000"
+       }   
+     }
+     ```
+
+     1. **Set credentials**:
+        One of the tasks performed by the lambda@edge origin request function is to make a call to secrets manager to acquire secrets for shibboleth and JWT tokens. The `AWS_PROFILE` environment variable can be changed to reflect the appropriate credentials in your `~/.aws/credentials` file. Or you can swap  `AWS_PROFILE` out entirely for `AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY`, & `AWS_SESSION_TOKEN` values.
+
+     2. **Build:**
+        Bundle the main lambda@edge nodejs package:
+
+        ```
+        npm run bundle
+        ```
+
+     3. **Launch**:
+        Run the launch configuration and navigate to https://localhost:5000/some/path?qs=some_value
+
+        
+
+   - **METHOD B:**
+
+     Run containers
+     *NOTE: These steps focus on just plain docker and are temporary until docker-compose is introduced - WORK IN PROGRESS.*
+
+     1. From the root of the project, navigate to the docker directory
+
+     2. Put credentials in a .env file:
+
+        ```
+        AWS_ACCESS_KEY_ID=your_key_id
+        AWS_SECRET_ACCESS_KEY=your_key
+        AWS_SESSION_TOKEN=your_session_token
+        TZ=utc
+        ```
+
+        *NOTE: It is important that TZ is present and set to utc (Do not pick another time zone).*
+
+     3. Use npm to run container A
+
+        ```
+        npm run up
+        ```
+
+        
+

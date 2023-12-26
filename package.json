@@ -9,7 +9,8 @@
     "watch": "tsc -w",
     "cleanup": "ts-node bin/LambdaVersionCleanup.ts",
     "test": "jest --silent",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "install-all": "sh -c \"for line in $(find . -maxdepth 3 -name package.json -print | grep -v '/node_modules/') ; do (cd $(dirname $line) && npm install --save-dev); done\""
   },
   "dependencies": {
     "aws-cdk-lib": "2.99.0",
