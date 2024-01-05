@@ -271,8 +271,8 @@ else {
       // At this point in the auth flow, the assert callback is taking place and a token should be present as a header:
       validToken = {
         [JwtTools.TOKEN_NAME]: {
-        sub: MockSamlAssertResponse.user.name_id, 
-        user: MockSamlAssertResponse.user.attributes
+          sub: MockSamlAssertResponse.user.name_id, 
+          user: MockSamlAssertResponse.user.attributes
         }
       };
       const COOKIE_NAME = JwtTools.COOKIE_NAME;

@@ -20,6 +20,10 @@
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.4",
-    "@types/saml2-js": "^3.0.3"
+    "@types/saml2-js": "^3.0.3",
+    "axios": "^1.6.2",
+    "express": "^4.18.2",
+    "https": "^1.0.0",
+    "node-forge": "^1.3.1"
   }
 }

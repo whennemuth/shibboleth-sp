@@ -1,4 +1,3 @@
-
 export const MockSamlAssertResponse = {
   "response_header": {
       "version": "2.0",

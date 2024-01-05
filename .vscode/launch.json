@@ -27,12 +27,13 @@
         "<node_internals>/**"
       ],
       "args": [
-        "${workspaceFolder}/docker/index.js",
-      ], 
+        "${workspaceFolder}/docker-entrypoint.js",
+      ],
+      "envFile": "${workspaceFolder}/.env",
       "env": {
-        "AWS_PROFILE": "bu",
         "TZ": "utc",
-        "LOCAL_DOMAIN_AND_PORT": "localhost:5000"
+        "EXPRESS_PORT": "5000",
+        "APP_HOST": "localhost"
       }   
     },
     {

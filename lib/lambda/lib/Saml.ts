@@ -37,7 +37,7 @@ export class SamlTools {
       force_authn: true,
       sign_get_request: true,
       allow_unencrypted_assertion: true,
-      notbefore_skew: 10
+      notbefore_skew: 60
     }
 
     this.idp_options = {

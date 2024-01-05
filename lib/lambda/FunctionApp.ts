@@ -1,7 +1,4 @@
-import * as contextJSON from '../../context/context.json';
 import { JwtTools } from './lib/Jwt';
-
-const context = contextJSON;
 
 /**
  * This is a lambda function that represents an "application" that one will have access to after having

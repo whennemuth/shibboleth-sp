@@ -1,13 +1,22 @@
-import { CachedKeys, checkCache } from './lib/Secrets';
+import { CachedKeys, checkCache, getKeys } from './lib/Secrets';
 import { SamlTools, SamlToolsParms, SendAssertResult } from './lib/Saml';
 import { JwtTools } from './lib/Jwt';
+import { Shibboleth } from '../../context/IContext';
 import * as contextJSON from '../../context/context.json';
 
 const jwtTools = new JwtTools();
 const context = contextJSON;
 const debug = process.env?.DEBUG == 'true';
-const { entityId, entryPoint, logoutUrl, idpCert } = context.SHIBBOLETH;
-let samlTools = new SamlTools({ entityId, entryPoint, logoutUrl, idpCert } as SamlToolsParms);
+const { entityId, entryPoint, logoutUrl, idpCert } = context.SHIBBOLETH as Shibboleth;
+// If running locally - not in lambda@edge function - shibboleth configs can come from the environment.
+const { ENTITY_ID, ENTRY_POINT, LOGOUT_URL, IDP_CERT } = process?.env;
+
+let samlTools = new SamlTools({ 
+  entityId: entityId || ENTITY_ID, 
+  entryPoint: entryPoint || ENTRY_POINT, 
+  logoutUrl: logoutUrl || LOGOUT_URL, 
+  idpCert: idpCert || IDP_CERT
+} as SamlToolsParms);
 
 const cachedKeys:CachedKeys = { 
   _timestamp: 0, /* One hour */ 
@@ -243,7 +252,13 @@ export const handler =  async (event:any) => {
   }
 };
 
+export const getJwtTools = () => {
+  return new JwtTools();
+}
 
+export const getKeyLib = () => {
+  return getKeys();
+}
 
 
 

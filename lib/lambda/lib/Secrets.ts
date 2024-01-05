@@ -1,7 +1,9 @@
 import { GetSecretValueCommand, GetSecretValueCommandOutput, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import * as context from '../../../context/context.json';
+import { Secret } from '../../../context/IContext';
+import { Keys } from './Keys';
 
-const { _secretArn, _refreshInterval, samlCertSecretFld, samlPrivateKeySecretFld, jwtPublicKeySecretFld, jwtPrivateKeySecretFld } = context.SHIBBOLETH.secret;
+const { _secretArn, _refreshInterval, samlCertSecretFld, samlPrivateKeySecretFld, jwtPublicKeySecretFld, jwtPrivateKeySecretFld } = context.SHIBBOLETH.secret as Secret;
 const refreshInterval = parseInt(_refreshInterval)
 
 export type CachedKeys = {
@@ -26,17 +28,48 @@ export type SecretsConfig = {
  * @param cache 
  * @returns 
  */
-const refreshable = (cache:CachedKeys, refreshInterval:number, now:number) => {
+export const refreshable = (cache:CachedKeys, refreshInterval:number, now:number) => {
+
+  if(process?.env.AUTHENTICATE === 'false') {
+    // No need to use the cache since there is no authentication to come.
+    return false;
+  }
+
   const { _timestamp, jwtPrivateKey, jwtPublicKey, samlCert, samlPrivateKey } = cache;
-  const foundEmpty = 
-    samlCert.length === 0 ||
+
+  const cacheIsEmptyOrInvalid = () => {
+    return samlCert.length === 0 ||
     samlPrivateKey.length === 0 ||
-    jwtPublicKey.length === 0
+    jwtPublicKey.length === 0 ||
     jwtPrivateKey.length === 0;
-  if (foundEmpty || now - _timestamp > refreshInterval) {
+  }
+    
+  const envSamlFound = () => {
+    return process?.env?.SAML_PK && process?.env?.SAML_CERT
+  }
+
+  if(cacheIsEmptyOrInvalid() && envSamlFound()) {
+    loadFromScratch(cache);
+    return false;
+  }
+  if(cacheIsEmptyOrInvalid() || now - _timestamp > refreshInterval) {
     return true;
   }
   return false;
+}
+
+/**
+ * Lambda@edge does not support environment variables, so if any are found (like SAML_PK), this means that the
+ * app is being run locally, ie: in a docker container, so the keys can be created from scratch and set in the cache.
+ * @param cache 
+ */
+const loadFromScratch = (cache:CachedKeys) => {
+  console.log('Cache: Building keys from scratch...');
+  const jwtKeys = new Keys();
+  cache.jwtPrivateKey = jwtKeys.privateKeyPEM;
+  cache.jwtPublicKey = jwtKeys.publicKeyPEM;
+  cache.samlPrivateKey = process.env.SAML_PK || '';
+  cache.samlCert = process.env.SAML_CERT || '';
 }
 
 /**
@@ -74,4 +107,8 @@ export async function checkCache(cache:CachedKeys, config?:SecretsConfig): Promi
   else {
     console.log('Using cache: certs & keys found in cache and before their stale date');
   }
+}
+
+export const getKeys = ():any => {
+  return new Keys();
 }

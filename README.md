@@ -98,6 +98,10 @@ Deeper dives into unit testing and logging:
 - [Jest unit testing: Gotchas](./docs/testing-gotchas.md)
 - [Where are the Lambda@Edge cloudwatch logs?](./docs/testing-lambda-at-edge-logs.md)
 
+### Running Locally
+
+Directions for running as a docker compose service or as a vscode launch configuration are [here](./docs/run-locally.md)
+
 
 
 ## References
