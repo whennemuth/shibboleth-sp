@@ -1,8 +1,8 @@
-// import { urlencoded, json } from 'express'
+/ import { urlencoded, json } from 'express'
 const express = require('express');
+const multer = require('multer'); // For mulit-part form uploads
 const { handler, getJwtTools, getKeyLib } = require('./sp');
 const https = require('https');
-const forge = require('node-forge');
 const port = process.env.EXPRESS_PORT;
 const targetAppMode = process.env?.AUTHENTICATE == 'false';
 
@@ -23,9 +23,22 @@ if(apphost) {
  * Start an instance of express listening on the designated port
  */
 const startServer = () => {
-  app = express();  
+  const app = express();
+
+  // for parsing application/x-www-form-urlencoded
   app.use(express.urlencoded({ extended: true }));
+
+  // for parsing application/json
   app.use(express.json());
+
+  // for parsing application/octet-stream
+  app.use(express.raw());
+
+  // for parsing multipart/form-data
+  const upload = multer();
+  app.use(upload.array()); 
+  app.use(express.static('public'));
+
   const keys = getKeyLib();
   const server = https.createServer({key: keys.privateKeyPEM, cert: keys.certificatePEM }, app);
     
@@ -172,8 +185,12 @@ const proxypass = async (req, res) => {
         response = await axios.get(url, { headers:headersOut });
         break;
       case 'post':
-        console.log(`Proxying post request to ${url}, headers: ${JSON.stringify(headersOut, null, 2)}`);
-        response = await axios.post(url, data, { headers:headersOut });
+        const formdata = req.body;
+        console.log(`Proxying post request to ${url}: ${JSON.stringify({
+          headers: headersOut, 
+          formdata
+        }, null, 2)}`);
+        response = await axios.post(url, formdata, { headers:headersOut });          
         break;
     }
 
