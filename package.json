@@ -14,7 +14,7 @@
     "bundle": "npm run sp-bundle && esbuild ./docker-entrypoint.js --bundle --platform=node --outfile=entrypoint.js",
     "install-all": "sh -c 'for line in $(find . -maxdepth 3 -name package.json -print | grep -v '/node_modules/') ; do (cd $(dirname $line) && npm install --save-dev); done;'",
     "docker-clean": "docker rmi $(docker images --filter dangling=true -q) 2> /dev/null || true",
-    "up": "npm run bunde && npm run docker-clean && docker compose --profile separate up --build -d --remove-orphans",
+    "up": "npm run bundle && npm run docker-clean && docker compose --profile separate up --build -d --remove-orphans",
     "down": "docker compose --profile separate down"
   },
   "dependencies": {
