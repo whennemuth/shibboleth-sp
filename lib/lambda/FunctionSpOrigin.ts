@@ -205,33 +205,33 @@ export const handler =  async (event:any) => {
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         } 
         else if(afterAuth.toLocaleLowerCase() === 'true') {
-            // The saml exchange has just taken place, and the user has authenticated with the IDP, yet either
-            // the JWT did not make it into a cookie, or the cookie value did not make it into the header of 
-            // this request. In either case, we don't redirect back to the login path to try again, because this
-            // will most likely result in an endless loop. Just terminate with an error.
-            response = {
-              status: '500',
-              statusDescription: 'State Error',
-              body: 'Authentication should have resulted in a valid JWT - no valid token found',
-              headers: {
-                'content-type': [{ key: 'Content-Type', value: 'text/plain' }],
-              }
+          // The saml exchange has just taken place, and the user has authenticated with the IDP, yet either
+          // the JWT did not make it into a cookie, or the cookie value did not make it into the header of 
+          // this request. In either case, we don't redirect back to the login path to try again, because this
+          // will most likely result in an endless loop. Just terminate with an error.
+          response = {
+            status: '500',
+            statusDescription: 'State Error',
+            body: 'Authentication should have resulted in a valid JWT - no valid token found',
+            headers: {
+              'content-type': [{ key: 'Content-Type', value: 'text/plain' }],
             }
-            console.log(`No valid JWT found after authentication: ${JSON.stringify(response, null, 2)}`); 
           }
-          else {
-            // No valid token has been found, and this is not a post authentication redirect - send user to login.
-            const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
-                        const location = `${rootUrl}/login?relay_state=${relay_state}`;
-            response = {
-              status: '302',
-              statusDescription: 'Found',
-              headers: {
-                location: [{ key: 'Location', value: location }],
-              },
-            };
-            console.log(`No valid JWT found - redirecting: ${JSON.stringify(response, null, 2)}`); 
-          }
+          console.log(`No valid JWT found after authentication: ${JSON.stringify(response, null, 2)}`); 
+        }
+        else {
+          // No valid token has been found, and this is not a post authentication redirect - send user to login.
+          const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
+                      const location = `${rootUrl}/login?relay_state=${relay_state}`;
+          response = {
+            status: '302',
+            statusDescription: 'Found',
+            headers: {
+              location: [{ key: 'Location', value: location }],
+            },
+          };
+          console.log(`No valid JWT found - redirecting: ${JSON.stringify(response, null, 2)}`); 
+        }
         break;
     }
     

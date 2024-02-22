@@ -88,7 +88,7 @@ A more detailed view of the interaction between the end-user, origin request lam
 To run all unit tests:
 
 ```
-npm test
+npm run test
 ```
 
 Deeper dives into unit testing and logging:

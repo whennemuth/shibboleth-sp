@@ -22,7 +22,6 @@ RUN npm install --save-dev
 RUN npm install esbuild -g
 
 RUN \
-  npm install esbuild -g && \
   esbuild ./FunctionSpOrigin.ts --bundle --platform=node --outfile=sp.js && \
   esbuild ./docker-entrypoint.js --bundle --platform=node --outfile=entrypoint.js
  
