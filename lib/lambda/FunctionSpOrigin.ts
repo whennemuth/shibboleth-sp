@@ -1,13 +1,22 @@
-import { CachedKeys, checkCache } from './lib/Secrets';
+import { CachedKeys, checkCache, getKeys } from './lib/Secrets';
 import { SamlTools, SamlToolsParms, SendAssertResult } from './lib/Saml';
 import { JwtTools } from './lib/Jwt';
+import { Shibboleth } from '../../context/IContext';
 import * as contextJSON from '../../context/context.json';
 
 const jwtTools = new JwtTools();
 const context = contextJSON;
 const debug = process.env?.DEBUG == 'true';
-const { entityId, entryPoint, logoutUrl, idpCert } = context.SHIBBOLETH;
-let samlTools = new SamlTools({ entityId, entryPoint, logoutUrl, idpCert } as SamlToolsParms);
+const { entityId, entryPoint, logoutUrl, idpCert } = context.SHIBBOLETH as Shibboleth;
+// If running locally - not in lambda@edge function - shibboleth configs can come from the environment.
+const { ENTITY_ID, ENTRY_POINT, LOGOUT_URL, IDP_CERT } = process?.env;
+
+let samlTools = new SamlTools({ 
+  entityId: entityId || ENTITY_ID, 
+  entryPoint: entryPoint || ENTRY_POINT, 
+  logoutUrl: logoutUrl || LOGOUT_URL, 
+  idpCert: idpCert || IDP_CERT
+} as SamlToolsParms);
 
 const cachedKeys:CachedKeys = { 
   _timestamp: 0, /* One hour */ 
@@ -46,6 +55,7 @@ export const handler =  async (event:any) => {
 
   const originRequest = event.Records[0].cf.request;
   const cloudfrontDomain = event.Records[0].cf.config.distributionDomainName;
+
   const rootUrl = `https://${cloudfrontDomain}`;
   samlTools.setAssertUrl(`${rootUrl}/assert`);
 
@@ -157,7 +167,7 @@ export const handler =  async (event:any) => {
           // Tokens are valid, so consider the user authenticated and pass through to the origin.
           console.log('Request has valid JWT');
           response = originRequest;
-          response.headers.authenticated = 'true';
+          response.headers['authenticated'] = 'true';
 
           // Send the entire token in a single header
           response.headers['user-details'] = [{
@@ -195,36 +205,36 @@ export const handler =  async (event:any) => {
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         } 
         else if(afterAuth.toLocaleLowerCase() === 'true') {
-            // The saml exchange has just taken place, and the user has authenticated with the IDP, yet either
-            // the JWT did not make it into a cookie, or the cookie value did not make it into the header of 
-            // this request. In either case, we don't redirect back to the login path to try again, because this
-            // will most likely result in an endless loop. Just terminate with an error.
-            response = {
-              status: '500',
-              statusDescription: 'State Error',
-              body: 'Authentication should have resulted in a valid JWT - no valid token found',
-              headers: {
-                'content-type': [{ key: 'Content-Type', value: 'text/plain' }],
-              }
+          // The saml exchange has just taken place, and the user has authenticated with the IDP, yet either
+          // the JWT did not make it into a cookie, or the cookie value did not make it into the header of 
+          // this request. In either case, we don't redirect back to the login path to try again, because this
+          // will most likely result in an endless loop. Just terminate with an error.
+          response = {
+            status: '500',
+            statusDescription: 'State Error',
+            body: 'Authentication should have resulted in a valid JWT - no valid token found',
+            headers: {
+              'content-type': [{ key: 'Content-Type', value: 'text/plain' }],
             }
-            console.log(`No valid JWT found after authentication: ${JSON.stringify(response, null, 2)}`); 
           }
-          else {
-            // No valid token has been found, and this is not a post authentication redirect - send user to login.
-            const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
-            const location = `${rootUrl}/login?relay_state=${relay_state}`;
-            response = {
-              status: '302',
-              statusDescription: 'Found',
-              headers: {
-                location: [{ key: 'Location', value: location }],
-              },
-            };
-            console.log(`No valid JWT found - redirecting: ${JSON.stringify(response, null, 2)}`); 
-          }
+          console.log(`No valid JWT found after authentication: ${JSON.stringify(response, null, 2)}`); 
+        }
+        else {
+          // No valid token has been found, and this is not a post authentication redirect - send user to login.
+          const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
+                      const location = `${rootUrl}/login?relay_state=${relay_state}`;
+          response = {
+            status: '302',
+            statusDescription: 'Found',
+            headers: {
+              location: [{ key: 'Location', value: location }],
+            },
+          };
+          console.log(`No valid JWT found - redirecting: ${JSON.stringify(response, null, 2)}`); 
+        }
         break;
     }
-
+    
     return response;
   } 
   catch (error:any) {
@@ -242,7 +252,13 @@ export const handler =  async (event:any) => {
   }
 };
 
+export const getJwtTools = () => {
+  return new JwtTools();
+}
 
+export const getKeyLib = () => {
+  return getKeys();
+}
 
 
 

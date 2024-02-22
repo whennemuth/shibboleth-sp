@@ -277,7 +277,7 @@ else {
       };
       const COOKIE_NAME = JwtTools.COOKIE_NAME;
       const event = getEssentialEvent();
-      let response:any = await handler(event);
+            let response:any = await handler(event);
       expect(response).toEqual(event.Records[0].cf.request);
     });
 

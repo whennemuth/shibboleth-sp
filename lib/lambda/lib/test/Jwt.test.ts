@@ -1,5 +1,5 @@
 import { JwtTools } from '../Jwt';
-import { Keys } from './Keys';
+import { Keys } from '../Keys';
 import { Request } from '../SimpleRemoteCall'
 
 const jwtTools = new JwtTools();

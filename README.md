@@ -88,7 +88,7 @@ A more detailed view of the interaction between the end-user, origin request lam
 To run all unit tests:
 
 ```
-npm test
+npm run test
 ```
 
 Deeper dives into unit testing and logging:
@@ -97,6 +97,10 @@ Deeper dives into unit testing and logging:
 - [Jest unit testing: ESM support](./docs/testing-esm-support.md)
 - [Jest unit testing: Gotchas](./docs/testing-gotchas.md)
 - [Where are the Lambda@Edge cloudwatch logs?](./docs/testing-lambda-at-edge-logs.md)
+
+### Running Locally
+
+Directions for running as a docker compose service or as a vscode launch configuration are [here](./docs/run-locally.md)
 
 
 

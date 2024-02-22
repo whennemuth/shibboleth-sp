@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+
+  # Shibboleth sp container posing also as "app" in single container
+  shibsp:
+    profiles:
+      - integrated
+    image: ${DOCKER_REGISTRY}/bu-shibboleth-sp 
+    container_name: sp    
+    build: &build
+      context: ./     
+    environment: &env
+      TZ: UTC
+      AWS_PROFILE: ${AWS_PROFILE}
+      EXPRESS_PORT: ${SP_PORT:-5000}
+      ENTITY_ID: ${ENTITY_ID}
+      IDP_CERT: ${IDP_CERT}
+      ENTRY_POINT: ${ENTRY_POINT}
+      LOGOUT_URL: ${LOGOUT_URL}
+      SAML_CERT: ${SAML_CERT}
+      SAML_PK: ${SAML_PK}
+      # DEBUG: 'true'
+    ports:
+      - '${SP_PORT:-5000}:${SP_PORT:-5000}'
+    networks:
+      wp-bridge:
+
+  # or...
+
+  # Shibboleth sp in one container targeting "app" in separate container over network bridge
+  shibsp_with_app:
+    profiles:
+      - separate
+    image: ${DOCKER_REGISTRY}/bu-shibboleth-sp 
+    container_name: sp_app    
+    build: *build
+    environment:
+      <<: *env
+      APP_HOST: app
+      EXPRESS_PORT: 5000
+    ports:
+      - '${SP_PORT:-5000}:${SP_PORT:-5000}'
+    networks:
+      wp-bridge:
+
+  app:
+    profiles:
+      - separate
+    image: ${DOCKER_REGISTRY}/bu-shibboleth-sp 
+    container_name: app 
+    depends_on:
+      - shibsp_with_app
+    expose:
+      - 443
+    environment:
+      AUTHENTICATE: 'false'
+      EXPRESS_PORT: 443
+      # DEBUG: 'true'
+    networks:
+      wp-bridge:
+    
+ 
+networks:
+  wp-bridge:
+    driver: bridge
+

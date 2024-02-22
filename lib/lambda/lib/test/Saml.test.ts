@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { SAMLAssertResponse, ServiceProvider } from 'saml2-js';
 import { SamlResponseObject, SamlTools, SamlToolsParms, getFriendlySamlResponse } from '../Saml';
-import { Keys } from './Keys';
+import { Keys } from '../Keys';
 import { Request } from '../SimpleRemoteCall';
 import { getSampleSamlResponseXML, getSampleSamlResponseBase64 } from './SamlResponseMock'
 import { MockSamlAssertResponse } from './SamlAssertResponseMock';

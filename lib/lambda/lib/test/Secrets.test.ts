@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock'
 import 'aws-sdk-client-mock-jest';
-import { SecretsConfig, CachedKeys, checkCache } from '../Secrets';
-import { Keys } from './Keys';
+import { SecretsConfig, CachedKeys, checkCache, refreshable } from '../Secrets';
+import { Keys } from '../Keys';
 import { GetSecretValueCommand, GetSecretValueCommandOutput, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 
 /**
@@ -123,7 +123,26 @@ else {
       // Check the cache and assert that this DID NOT result in a refresh
       await checkCache(cache, config);
       expect(smMockClient).toHaveReceivedCommandTimes(GetSecretValueCommand, 0);
-    })
+    });
+
+    it('Should load from environment if the corresponding env variables are found', () => {
+      cache = { _timestamp:0, jwtPrivateKey: '', jwtPublicKey: '', samlCert: '', samlPrivateKey: ''} as CachedKeys
+      // Sufficient environment vars are NOT found:
+      let retval = refreshable(cache, 0, 0);
+      expect(retval).toBe(true);
+      process.env.SAML_PK = 'dummy_value';
+      retval = refreshable(cache, 0, 0);
+      expect(retval).toBe(true);
+      // Sufficient environment vars ARE found:
+      process.env.SAML_CERT = 'dummy_value';
+      retval = refreshable(cache, 0, 0);
+      expect(retval).toBe(false);
+      process.env.SAML_PK = '';
+      process.env.SAML_CERT = '';
+      process.env.AUTHENTICATE = 'false';
+      retval = refreshable(cache, 0, 0);
+      expect(retval).toBe(false);
+    });
   });
 }
 
