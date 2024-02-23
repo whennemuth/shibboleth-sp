@@ -13,7 +13,7 @@ services:
     environment: &env
       TZ: UTC
       AWS_PROFILE: ${AWS_PROFILE}
-      EXPRESS_PORT: ${SP_PORT:-5000}
+      EXPRESS_PORT: ${EXPRESS_PORT:-5000}
       ENTITY_ID: ${ENTITY_ID}
       IDP_CERT: ${IDP_CERT}
       ENTRY_POINT: ${ENTRY_POINT}
@@ -22,7 +22,7 @@ services:
       SAML_PK: ${SAML_PK}
       # DEBUG: 'true'
     ports:
-      - '${SP_PORT:-5000}:${SP_PORT:-5000}'
+      - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
     networks:
       wp-bridge:
 
@@ -40,7 +40,7 @@ services:
       APP_HOST: app
       EXPRESS_PORT: 5000
     ports:
-      - '${SP_PORT:-5000}:${SP_PORT:-5000}'
+      - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
     networks:
       wp-bridge:
 

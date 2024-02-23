@@ -29,12 +29,7 @@
       "args": [
         "${workspaceFolder}/docker-entrypoint.js",
       ],
-      "envFile": "${workspaceFolder}/.env",
-      "env": {
-        "TZ": "utc",
-        "EXPRESS_PORT": "5000",
-        "APP_HOST": "localhost"
-      }   
+      "envFile": "${workspaceFolder}/.env",  
     },
     {
       "type": "node",
