@@ -45,6 +45,8 @@ export enum AUTH_PATHS {
 /**
  * This is the lambda@edge function for origin request traffic. It will perform all saml SP operations for ensuring
  * that the user bears JWT proof of saml authentication, else it drives the authentication flow with the IDP.
+ * If the APP_AUTHORIZATION environment variable is set to true, it will relinquish the "decision" to make the
+ * redirect to the IDP for authentication to the app (but will handle all other parts of the SP/IDP process).
  * 
  * NOTE: It would have been preferable to have designated this function for viewer requests so that it could 
  * intercept EVERY request instead of potentially being bypassed in favor of cached content. However, the content
@@ -192,10 +194,10 @@ export const handler =  async (event:any) => {
           addHeader(response, 'eduPersonEntitlement', eduPersonEntitlement.join(';'));
           addHeader(response, 'root-url', encodeURIComponent(rootUrl));
 
-          response.status = 200;
+          response.status = '200';
 
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
-        } 
+        }
         else if(afterAuth.toLocaleLowerCase() === 'true') {
           // The saml exchange has just taken place, and the user has authenticated with the IDP, yet either
           // the JWT did not make it into a cookie, or the cookie value did not make it into the header of 
@@ -211,10 +213,18 @@ export const handler =  async (event:any) => {
           }
           console.log(`No valid JWT found after authentication: ${JSON.stringify(response, null, 2)}`); 
         }
+        else if(appAuth) {
+          // The application will "decide" if access to it needs to be authenticated or not, so just pass through the request
+          response = originRequest;
+          response.status = '200';
+          addHeader(response, 'authenticated', 'false');
+          addHeader(response, 'login', LOGIN);
+          console.log('App will determine need for auth - passing through to origin');
+        } 
         else {
           // No valid token has been found, and this is not a post authentication redirect - send user to login.
           const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
-                      const location = `${rootUrl}/login?relay_state=${relay_state}`;
+          const location = `${rootUrl}/login?relay_state=${relay_state}`;
           response = {
             status: '302',
             statusDescription: 'Found',
