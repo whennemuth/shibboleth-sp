@@ -30,7 +30,7 @@ The "adapter" functionality allows container A to simulate cloudfront@edge, by t
    ```
       AWS_PROFILE="bu"
       DOCKER_REGISTRY="037860335094.dkr.ecr.us-east-2.amazonaws.com"
-      SP_PORT=5000
+      EXPRESS_PORT=5000
       ENTITY_ID="https://*.kualitest.research.bu.edu/shibboleth"
       IDP_CERT="<ds:X509Certificate> value from https://shib-test.bu.edu/idp/shibboleth goes here"
       ENTRY_POINT="https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO"
@@ -46,7 +46,7 @@ The "adapter" functionality allows container A to simulate cloudfront@edge, by t
       To access the certs and keys directly from the environment, set the `.env` file like this:
    
       ```
-      SP_PORT=5000
+      EXPRESS_PORT=5000
       DOCKER_REGISTRY="037860335094.dkr.ecr.us-east-2.amazonaws.com"
       ENTITY_ID="https://*.kualitest.research.bu.edu/shibboleth"
       IDP_CERT="<ds:X509Certificate> value from https://shib-test.bu.edu/idp/shibboleth goes here"
@@ -81,21 +81,18 @@ The "adapter" functionality allows container A to simulate cloudfront@edge, by t
      "args": [
        "${workspaceFolder}/docker-entrypoint.js",
      ], 
-     "envFile": "${workspaceFolder}/.env",
-     "env": {
-     	"TZ": "utc",
-     }   
+     "envFile": "${workspaceFolder}/.env"   
    }
    ```
-
+   
    Bundle the main lambda@edge nodejs package:
-
+   
    ```
    npm run bundle
    ```
-
+   
    Then run the launch configuration and navigate to https://localhost:5000/some/path?qs=some_value
-
+   
 4. OR...
 
 5. **Run as docker-compose service:**

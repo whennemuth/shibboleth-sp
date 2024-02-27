@@ -22,19 +22,28 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "sp-express-app",
+      "name": "sp-express-sp",
+      "preLaunchTask": "sp-bundle",
       "skipFiles": [
         "<node_internals>/**"
       ],
       "args": [
-        "${workspaceFolder}/docker-entrypoint.js",
+        "${workspaceFolder}/lib/docker/sp/docker-entrypoint.js",
       ],
-      "envFile": "${workspaceFolder}/.env",
-      "env": {
-        "TZ": "utc",
-        "EXPRESS_PORT": "5000",
-        "APP_HOST": "localhost"
-      }   
+      "envFile": "${workspaceFolder}/.env",  
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "sp-express-app",
+      "preLaunchTask": "app-bundle",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "args": [
+        "${workspaceFolder}/lib/docker/app/entrypoint.js",
+      ],
+      "envFile": "${workspaceFolder}/.env",  
     },
     {
       "type": "node",
@@ -71,6 +80,21 @@
       "env": {
         "AWS_PROFILE": "bu"
       } 
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Entrypoint",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [ 
+        "--runTestsByPath", 
+        "--silent",
+        "-i", 
+        "${workspaceFolder}/lib/docker/entrypoint.test.js" 
+      ],
+      "runtimeArgs": [ "--experimental-vm-modules" ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
     },
     {
       "type": "node",

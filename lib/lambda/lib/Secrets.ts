@@ -28,12 +28,7 @@ export type SecretsConfig = {
  * @param cache 
  * @returns 
  */
-export const refreshable = (cache:CachedKeys, refreshInterval:number, now:number) => {
-
-  if(process?.env.AUTHENTICATE === 'false') {
-    // No need to use the cache since there is no authentication to come.
-    return false;
-  }
+export const requiresRefreshFromSecretsManager = (cache:CachedKeys, refreshInterval:number, now:number) => {
 
   const { _timestamp, jwtPrivateKey, jwtPublicKey, samlCert, samlPrivateKey } = cache;
 
@@ -41,18 +36,19 @@ export const refreshable = (cache:CachedKeys, refreshInterval:number, now:number
     return samlCert.length === 0 ||
     samlPrivateKey.length === 0 ||
     jwtPublicKey.length === 0 ||
-    jwtPrivateKey.length === 0;
+    jwtPrivateKey.length === 0 || 
+    ( now - _timestamp > refreshInterval );
   }
-    
-  const envSamlFound = () => {
-    return process?.env?.SAML_PK && process?.env?.SAML_CERT
-  }
+  
+  // For now, saml private key and cert will be found as environment variables only if running locally.
+  const runningLocally = () => process?.env?.SAML_PK && process?.env?.SAML_CERT;
 
-  if(cacheIsEmptyOrInvalid() && envSamlFound()) {
+  if(cacheIsEmptyOrInvalid() && runningLocally()) {
     loadFromScratch(cache);
     return false;
   }
-  if(cacheIsEmptyOrInvalid() || now - _timestamp > refreshInterval) {
+
+  if(cacheIsEmptyOrInvalid()) {
     return true;
   }
   return false;
@@ -70,6 +66,7 @@ const loadFromScratch = (cache:CachedKeys) => {
   cache.jwtPublicKey = jwtKeys.publicKeyPEM;
   cache.samlPrivateKey = process.env.SAML_PK || '';
   cache.samlCert = process.env.SAML_CERT || '';
+  cache._timestamp = Date.now();
 }
 
 /**
@@ -83,7 +80,7 @@ export async function checkCache(cache:CachedKeys, config?:SecretsConfig): Promi
   };
   
   const now = Date.now();
-  if (refreshable(cache, refreshInterval, now)) {
+  if (requiresRefreshFromSecretsManager(cache, refreshInterval, now)) {
     try {
       const { _secretArn, samlCertSecretFld, samlPrivateKeySecretFld, jwtPrivateKeySecretFld, jwtPublicKeySecretFld } = _config;
       const command = new GetSecretValueCommand({ SecretId: _secretArn });
