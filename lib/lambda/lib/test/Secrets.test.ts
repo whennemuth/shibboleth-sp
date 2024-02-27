@@ -139,7 +139,6 @@ else {
       expect(retval).toBe(false);
       process.env.SAML_PK = '';
       process.env.SAML_CERT = '';
-      process.env.AUTHENTICATE = 'false';
       retval = requiresRefreshFromSecretsManager(cache, 0, 0);
       expect(retval).toBe(false);
     });

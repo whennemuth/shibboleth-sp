@@ -1,0 +1,47 @@
+# -----------------------------------------------------------
+#                      STAGE 1
+# -----------------------------------------------------------
+FROM node:slim AS baseline
+
+ENV NODE_ENV development
+USER root
+WORKDIR /app
+
+RUN npm install esbuild -g
+
+COPY ./lib/lambda ./lib/lambda/
+COPY ./lib/docker/app ./lib/
+
+# Creating a dummy context.json file - will keep default imports and destructuring working.
+RUN mkdir ./context && echo '{ "SHIBBOLETH": { "secret": {} } }' > context/context.json
+COPY context/IContext.ts ./context/
+
+# Build the cloudfront origin requests lambda event package
+WORKDIR /app/lib/lambda
+RUN npm install --save-dev
+
+# Build an express app that impersonates the origin (app) itself. 
+WORKDIR /app/lib/app
+RUN npm install
+
+WORKDIR /app
+
+RUN \
+  esbuild ./lib/lambda/FunctionApp.ts --bundle --platform=node --outfile=app.js && \
+  esbuild ./lib/entrypoint.js --bundle --platform=node --outfile=entrypoint.js
+
+
+# -----------------------------------------------------------
+#                      STAGE 2
+# -----------------------------------------------------------
+FROM node:slim
+
+ENV NODE_ENV development
+USER root
+WORKDIR /app
+
+RUN apt update -y && apt upgrade -y && apt install -y curl;
+
+COPY --from=baseline /app/entrypoint.js /app/entrypoint.js
+
+CMD [ "node", "entrypoint.js" ]

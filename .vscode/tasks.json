@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "sp-bundle",
+      "type": "npm",
+      "script": "sp-bundle"
+    },
+    {
+      "label": "app-bundle",
+      "type": "npm",
+      "script": "app-bundle"
+    }
+  ]
+}

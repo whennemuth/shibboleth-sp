@@ -2,15 +2,14 @@ version: '3.9'
 
 services:
 
-  # Shibboleth sp container posing also as "app" in single container
-  shibsp_with_app:
-    profiles:
-      - integrated
+  # Shibboleth sp in one container targeting "app" in separate container over network bridge
+  shibsp:
     image: ${DOCKER_REGISTRY}/bu-shibboleth-sp 
     container_name: sp    
-    build: &build
-      context: ./     
-    environment: &env
+    build:
+      context: ./
+      dockerfile: Dockerfile-sp
+    environment:
       TZ: UTC
       AWS_PROFILE: ${AWS_PROFILE}
       EXPRESS_PORT: ${EXPRESS_PORT:-5000}
@@ -18,43 +17,27 @@ services:
       IDP_CERT: ${IDP_CERT}
       ENTRY_POINT: ${ENTRY_POINT}
       LOGOUT_URL: ${LOGOUT_URL}
-      AUTHENTICATE: ${AUTHENTICATE}
       SAML_CERT: ${SAML_CERT}
       SAML_PK: ${SAML_PK}
+      DOCKER_PROFILE: integrated
+      APP_HOST: app
       # DEBUG: 'true'
     ports:
       - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
     networks:
       wp-bridge:
 
-  # or...
-
-  # Shibboleth sp in one container targeting "app" in separate container over network bridge
-  shibsp:
-    profiles:
-      - separate
-    image: ${DOCKER_REGISTRY}/bu-shibboleth-sp 
-    container_name: sp_app    
-    build: *build
-    environment:
-      <<: *env
-      APP_HOST: app
-    ports:
-      - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
-    networks:
-      wp-bridge:
-
   app:
-    profiles:
-      - separate
-    image: ${DOCKER_REGISTRY}/bu-shibboleth-sp 
+    image: ${DOCKER_REGISTRY}/bu-shibboleth-app 
     container_name: app 
+    build:
+      context: ./
+      dockerfile: Dockerfile-app
     depends_on:
       - shibsp
     expose:
       - 443
     environment:
-      AUTHENTICATE: 'false'
       EXPRESS_PORT: 443
       # DEBUG: 'true'
     networks:

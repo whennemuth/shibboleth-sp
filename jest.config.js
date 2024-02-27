@@ -1,8 +1,11 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>'],
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/*.test.ts', '**/*.test.js'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
+    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.jsx?$': [ 
+      "esbuild-jest", {  sourcemap: true } 
+    ],
   }
 };

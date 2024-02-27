@@ -6,24 +6,30 @@ FROM node:slim AS baseline
 
 ENV NODE_ENV development
 USER root
-WORKDIR /shibboleth
+WORKDIR /sp
 
-COPY lib ./lib/
+RUN npm install esbuild -g
+
+COPY ./lib/lambda ./lib/lambda/
+COPY ./lib/docker/sp ./lib/
+
 # Creating a dummy context.json file - will keep default imports and destructuring working.
 RUN mkdir ./context && echo '{ "SHIBBOLETH": { "secret": {} } }' > context/context.json
 COPY context/IContext.ts ./context/
 
-WORKDIR /shibboleth/lib/lambda
-
-COPY docker-entrypoint.js ./
-
+# Build the cloudfront origin requests lambda event package
+WORKDIR /sp/lib/lambda
 RUN npm install --save-dev
 
-RUN npm install esbuild -g
+# Build an express app that impersonates cloudfront and hosts the origin requests lambda event package 
+WORKDIR /sp/lib/sp
+RUN npm install
+
+WORKDIR /sp
 
 RUN \
-  esbuild ./FunctionSpOrigin.ts --bundle --platform=node --outfile=sp.js && \
-  esbuild ./docker-entrypoint.js --bundle --platform=node --outfile=entrypoint.js
+  esbuild ./lib/lambda/FunctionSpOrigin.ts --bundle --platform=node --outfile=sp.js && \
+  esbuild ./lib/docker-entrypoint.js --bundle --platform=node --outfile=entrypoint.js
  
 
 # -----------------------------------------------------------
@@ -33,11 +39,10 @@ FROM node:slim
 
 ENV NODE_ENV development
 USER root
-WORKDIR /shibboleth
+WORKDIR /sp
 
 RUN apt update -y && apt upgrade -y && apt install -y curl;
 
-COPY --from=baseline /shibboleth/lib/lambda/sp.js /shibboleth/sp.js
-COPY --from=baseline /shibboleth/lib/lambda/entrypoint.js /shibboleth/entrypoint.js
+COPY --from=baseline /sp/entrypoint.js /sp/entrypoint.js
 
 CMD [ "node", "entrypoint.js" ]

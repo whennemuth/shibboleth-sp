@@ -30,11 +30,6 @@ export type SecretsConfig = {
  */
 export const requiresRefreshFromSecretsManager = (cache:CachedKeys, refreshInterval:number, now:number) => {
 
-  if(process?.env.AUTHENTICATE === 'false') {
-    // No need to use the cache since there is no authentication to come.
-    return false;
-  }
-
   const { _timestamp, jwtPrivateKey, jwtPublicKey, samlCert, samlPrivateKey } = cache;
 
   const cacheIsEmptyOrInvalid = () => {

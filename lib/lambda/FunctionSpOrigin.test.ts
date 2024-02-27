@@ -202,7 +202,11 @@ else {
     }; 
   }
 
-  describe('Origin request lambda event handler', () => {
+  /**
+   * Test a deployment in which the sp functionality "preempts" 
+   * authentication flow as a blanket requirement for all requests.
+   */
+  describe('FunctionSpOrigin.handler (APP_AUTHORIZATION=false)', () => {
 
     it('Should redirect to the login path if the original path is to the app and no valid JWT token', async () => {
       validToken = null;
@@ -298,5 +302,26 @@ else {
       expect(response.status).toEqual('302');
       expect(responseHasHeaderValue(response, 'location', logoutUrl)).toBeTruthy();
     });
+  });
+
+  /**
+   * Test a deployment in which the sp functionality is "told" per http request if authentication is needed.
+   */
+  describe('FunctionSpOrigin.handler (APP_AUTHORIZATION=true)', () => {
+
+    it('Should redirect to the login path if the original path is to the app and no valid JWT token', async () => {
+      validToken = null;
+      const event = getEssentialEvent();
+      const response = await handler(event);
+      expect(response.status).toEqual('302');
+      const location = getHeaderValue(response, 'location');
+      const url = new URL(location);
+      expect(url.host).toEqual(distributionDomainName);
+      expect(url.pathname).toEqual('/login');      
+      const qsparms = new URLSearchParams(url.searchParams);
+      const relayState = decodeURIComponent(qsparms?.get('relay_state') || '');
+      expect(relayState).toEqual(`https://${distributionDomainName}${uri}`);
+    });
+
   });
 }
