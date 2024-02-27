@@ -74,6 +74,10 @@ export const handler =  async (event:any) => {
     console.log(`uri: ${uri}`);
     console.log(`querystring: ${querystring}`);
     const { LOGIN, LOGOUT, ASSERT, METADATA, FAVICON } = AUTH_PATHS;
+
+    const addHeader = (response:any, keyname:string, value:string) => {
+      response.headers[keyname] = [{ key: keyname, value }];
+    }
     
     switch(uri) {
       case LOGIN:
@@ -173,39 +177,20 @@ export const handler =  async (event:any) => {
         if (validToken) {
           // Tokens are valid, so consider the user authenticated and pass through to the origin.
           console.log('Request has valid JWT');
-          response = originRequest;
-          response.headers['authenticated'] = 'true';
+          response = originRequest;          
+          addHeader(response, 'authenticated', 'true');
 
           // Send the entire token in a single header
-          response.headers['user-details'] = [{
-            key: "User-Details",
-            value: `${Buffer.from(JSON.stringify(validToken, null, 2)).toString('base64')}`
-          }];
+          const userDetails = `${Buffer.from(JSON.stringify(validToken, null, 2)).toString('base64')}`;
+          addHeader(response, 'user-details', userDetails);
 
           // Also send the individual claims in separate headers, as mod_shib would.
           const { user: { eduPersonPrincipalName, buPrincipal, eduPersonAffiliation, eduPersonEntitlement } } = validToken[JwtTools.TOKEN_NAME];
-
-          response.headers['eduPersonPrincipalName'] = [{
-            key: 'eduPersonPrincipalName',
-            value: eduPersonPrincipalName
-          }];
-          response.headers['buPrincipal'] = [{
-            key: 'buPrincipal',
-            value: buPrincipal
-          }];
-          response.headers['eduPersonAffiliation'] = [{
-            key: 'eduPersonAffiliation',
-            value: eduPersonAffiliation.join(';')
-          }];
-          response.headers['eduPersonEntitlement'] = [{
-            key: 'eduPersonEntitlement',
-            value: eduPersonEntitlement.join(';')
-          }];
-
-          response.headers['root-url'] = [{
-            key: 'Root-URL',
-            value: encodeURIComponent(rootUrl)
-          }];
+          addHeader(response, 'eduPersonPrincipalName', eduPersonPrincipalName);
+          addHeader(response, 'buPrincipal', buPrincipal);
+          addHeader(response, 'eduPersonAffiliation', eduPersonAffiliation.join(';'));
+          addHeader(response, 'eduPersonEntitlement', eduPersonEntitlement.join(';'));
+          addHeader(response, 'root-url', encodeURIComponent(rootUrl));
 
           response.status = 200;
 
