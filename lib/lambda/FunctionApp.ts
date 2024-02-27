@@ -1,6 +1,8 @@
 import { JwtTools } from './lib/Jwt';
 import { Keys } from './lib/Keys';
 
+const { APP_AUTHORIZATION='false' } = process?.env;
+
 /**
  * This is a lambda function that represents an "application" that one will have access to after having
  * authenticated with the saml IDP. For now, it just returns the event object, formatted for html as <pre> 
@@ -16,6 +18,7 @@ const handler = async (event:any) => {
   debugLog(JSON.stringify(event, null, 2));
   try {
     const { headers, rawPath } = event;
+    const appAuth = APP_AUTHORIZATION == 'true';
 
     if( ! headers) {
       return '<!DOCTYPE html><html><body><h3>Something went wrong!<br>No headers detected</h3></body></html>';

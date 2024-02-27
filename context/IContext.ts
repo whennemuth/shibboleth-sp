@@ -16,6 +16,7 @@ export interface IContext {
     EDGE_REQUEST_ORIGIN_FUNCTION_NAME:  string;
     EDGE_RESPONSE_VIEWER_FUNCTION_NAME: string;
     APP_FUNCTION_NAME:                  string;
+    APP_AUTHORIZATION:                  string;
     SHIBBOLETH:                         Shibboleth;
     TAGS:                               Tags;
 }
@@ -217,6 +218,7 @@ const typeMap: any = {
         { json: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", js: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", typ: "" },
         { json: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", js: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", typ: "" },
         { json: "APP_FUNCTION_NAME", js: "APP_FUNCTION_NAME", typ: "" },
+        { json: "APP_AUTHORIZATION", js: "APP_AUTHORIZATION", typ: "" },
         { json: "SHIBBOLETH", js: "SHIBBOLETH", typ: r("Shibboleth") },
         { json: "TAGS", js: "TAGS", typ: r("Tags") },
     ], false),

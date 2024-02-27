@@ -9,7 +9,7 @@ const context = contextJSON;
 const debug = process.env?.DEBUG == 'true';
 const { entityId, entryPoint, logoutUrl, idpCert } = context.SHIBBOLETH as Shibboleth;
 // If running locally - not in lambda@edge function - shibboleth configs can come from the environment.
-const { ENTITY_ID, ENTRY_POINT, LOGOUT_URL, IDP_CERT } = process?.env;
+const { ENTITY_ID, ENTRY_POINT, LOGOUT_URL, IDP_CERT, APP_AUTHORIZATION='false' } = process?.env;
 
 let samlTools = new SamlTools({ 
   entityId: entityId || ENTITY_ID, 
@@ -55,6 +55,7 @@ export const handler =  async (event:any) => {
 
   const originRequest = event.Records[0].cf.request;
   const cloudfrontDomain = event.Records[0].cf.config.distributionDomainName;
+  const appAuth = APP_AUTHORIZATION == 'true';
 
   const rootUrl = `https://${cloudfrontDomain}`;
   samlTools.setAssertUrl(`${rootUrl}/assert`);
