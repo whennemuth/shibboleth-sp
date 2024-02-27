@@ -38,6 +38,10 @@ const debugPrint = (value:string) => {
   }
 }
 
+export enum AUTH_PATHS {
+  LOGIN = '/login', LOGOUT = '/logout', ASSERT = '/assert', METADATA = '/metadata', FAVICON = '/favicon.ico'
+}
+
 /**
  * This is the lambda@edge function for origin request traffic. It will perform all saml SP operations for ensuring
  * that the user bears JWT proof of saml authentication, else it drives the authentication flow with the IDP.
@@ -68,9 +72,10 @@ export const handler =  async (event:any) => {
     const qsparms = querystring ? new URLSearchParams(querystring) : null;
     console.log(`uri: ${uri}`);
     console.log(`querystring: ${querystring}`);
+    const { LOGIN, LOGOUT, ASSERT, METADATA, FAVICON } = AUTH_PATHS;
     
     switch(uri) {
-      case '/login':
+      case LOGIN:
         console.log('User is not authenticated, initiate SAML authentication...');
         var relayState:string|null = decodeURIComponent(qsparms ? qsparms.get('relay_state') || '' : rootUrl);
         const loginUrl = await samlTools.createLoginRequestUrl(relayState);
@@ -84,7 +89,7 @@ export const handler =  async (event:any) => {
         debugPrint(`response: ${JSON.stringify(response, null, 2)}`);
         break;
 
-      case '/logout':
+      case LOGOUT:
         const target = qsparms ? qsparms.get('target') : null;
         if(target == 'idp') {
           // Second step: logout with the Idp
@@ -112,7 +117,7 @@ export const handler =  async (event:any) => {
         }
         break;
 
-      case '/assert':
+      case ASSERT:
         const result:SendAssertResult|null = await samlTools.sendAssert(originRequest);
         const message = `Authentication successful. result: ${JSON.stringify(result, null, 2)}`
         var { samlAssertResponse, relayState } = result;
@@ -141,7 +146,7 @@ export const handler =  async (event:any) => {
         
         break;
 
-      case '/metadata':
+      case METADATA:
         response = {
           status: 200,
           statusDescription: 'OK',
@@ -152,7 +157,7 @@ export const handler =  async (event:any) => {
         }
         break;
 
-      case '/favicon.ico':
+      case FAVICON:
         // This path just dirties up logs, so intercept it here and return a blank.
         // Can't seem to get an actual favicon.ico to work from here anyway.
         response = {
