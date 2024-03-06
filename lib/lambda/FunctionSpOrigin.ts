@@ -201,8 +201,6 @@ export const handler =  async (event:any) => {
           addHeader(response, 'eduPersonEntitlement', eduPersonEntitlement.join(';'));
           addHeader(response, 'root-url', encodeURIComponent(rootUrl));
 
-          response.status = '200';
-
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         }
         else if(afterAuth.toLocaleLowerCase() === 'true') {
@@ -223,7 +221,6 @@ export const handler =  async (event:any) => {
         else if(appAuth) {
           // The application will "decide" if access to it needs to be authenticated or not, so just pass through the request
           response = originRequest;
-          response.status = '200';
           addHeader(response, 'authenticated', 'false');
           addHeader(response, 'login', LOGIN);
           console.log('App will determine need for auth - passing through to origin');

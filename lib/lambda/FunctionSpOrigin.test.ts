@@ -231,7 +231,6 @@ else {
       // The sp will delegate to the app for authentication decisions.
       process.env.APP_AUTHORIZATION = 'true';
       response = await handler(event);
-      expect(response.status).toEqual('200');
       // Get a clone of the request in the event object
       const expectedResponse = getDeepClone(event.Records[0].cf.request) as any;
       // Modify the request the same way it is expected that the handler will
