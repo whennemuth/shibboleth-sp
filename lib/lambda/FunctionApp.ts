@@ -6,8 +6,10 @@ const { APP_AUTHORIZATION='false' } = process?.env;
 
 /**
  * This is a lambda function that represents an "application" that one will have access to after having
- * authenticated with the saml IDP. For now, it just returns the event object, formatted for html as <pre> 
- * element content.
+ * authenticated with the saml IDP. It will just return user info found in the event object, formatted 
+ * for html as <pre> element content, but depending on if APP_AUTHORIZATION is set, it may first involve 
+ * itself in determining if the request needs authentication and is also authorized to view the requested 
+ * endpoint before returning the html (simulates how wordpress works with shibboleth). 
  * 
  * NOTE:
  * If you hit the function url directly, the content type will always be "application/json" and therefore no
@@ -16,50 +18,152 @@ const { APP_AUTHORIZATION='false' } = process?.env;
  * to "text/html", so if you come in through the public cloudfront distribution url, the formatting will be there.
  */
 const handler = async (event:any) => {
-  debugLog(JSON.stringify(event, null, 2));
-  try {
-    const { headers, rawPath } = event;
-    const appAuth = APP_AUTHORIZATION == 'true';
+  console.log(`EVENT: ${JSON.stringify(event, null, 2)}`);
 
-    if( ! headers) {
-      return '<!DOCTYPE html><html><body><h3>Something went wrong!<br>No headers detected</h3></body></html>';
+  const { headers, rawPath='/' } = event;
+  let appAuth = APP_AUTHORIZATION == 'true';
+  if( ! appAuth) {
+    appAuth = 'true' == headers?.APP_AUTHORIZATION;
+  }
+
+  const pathParts = (rawPath as string).split('/').map(p => p.toLocaleLowerCase());
+  if(appAuth) {
+
+    const authenticated = headers.authenticated == 'true';
+
+    if(pathParts.includes('private') && !authenticated) {
+      return getLoginResponse(event);
     }
 
-    let user;
+    if(pathParts.includes('unauthorized')) {
+      return getUnauthorizedResponse(event);
+    }
+  }
 
+  return getOkResponse(event);
+}
+
+/**
+ * Get the login url to return for redirection to the IDP.
+ * @param event
+ * @returns 
+ */
+const getLoginResponse = (event:any) => {
+  const { headers, rawPath, rawQueryString } = event;
+  const rootUrl = decodeURIComponent(headers['root-url']);
+  let loginUrl = `${rootUrl.replace(/\/+$/, '')}/${AUTH_PATHS.LOGIN.replace(/^\/+/, '')}`;
+  const relay_state = encodeURIComponent(rootUrl + rawPath + (rawQueryString ? `?${rawQueryString}` : ''));
+  loginUrl = `${loginUrl}?relay_state=${relay_state}`
+
+  const loginResponse = {
+    statusCode: 302,
+    // body: "login",
+    headers: {
+      ["content-type"]: "text/html",
+      Location: loginUrl
+    }
+  }
+
+  console.log(`LOGIN RESPONSE: ${JSON.stringify(loginResponse, null, 2)}`);
+  return loginResponse;
+}
+
+/**
+ * Request is authenticated, but still the user lacks the authorization to view the endpoint. Return a 403.
+ * @param event 
+ * @returns 
+ */
+const getUnauthorizedResponse = (event:any) => {
+  const { headers: { authenticated } } = event;
+  let msg = 'Forbidden: Sorry, I know who you are, but you lack the authorization to view this resource.'
+  if(authenticated != 'true') {
+    msg = 'Forbidden: Sorry, I don\'t know who you are, and cannot tell if you are the authorization to view this resource.'
+  }
+  return {
+    statusCode: 403,
+    body: `<!DOCTYPE html><html><body><h3>${msg}</h3></body></html>`,
+    headers: {
+      ["content-type"]: "text/html",
+    }
+  }
+}
+
+/**
+ * Request is authenticated and authorized. Return the requested content.
+ * This is a dummy app, return a printout of all user data returned from the IDP in the header/cookie. 
+ * @param event 
+ * @returns 
+ */
+const getOkResponse = (event:any) => {
+  try {
+    const { headers } = event;
+
+    // WHAT! No headers?
+    if( ! headers) {
+      return {
+        statusCode: 500,
+        body: '<!DOCTYPE html><html><body><h3>Something went wrong!<br>No headers detected</h3></body></html>',
+        headers: {
+          ["content-type"]: "text/html",
+        }
+      }
+    }
+
+    // 1) First check the "user-details" header for user data.
+    let user;
     if(headers['user-details']) {
       const userBase64 = headers['user-details'];
       const authTokenJson = Buffer.from(userBase64, 'base64').toString();
       user = (JSON.parse(authTokenJson))[JwtTools.TOKEN_NAME].user;
     }
 
+    // 2) If No user details header, check for the jwt and get user details from that.
     if( ! user) {
       user = getUserFromJwt(headers['cookie'], 'auth-token-cookie');
     }
 
+    // 3) If no jwt or expected jwt content, respond with warning and list out what headers were found.
     if( ! user) {
-      return `
+      return {
+        statusCode: 200,
+        body: `
+          <!DOCTYPE html>
+          <html>
+            <body>
+              <p><b>user-details and jwt cookie header missing from the following headers received:</b></p>
+              <pre>${Object.keys(headers).map(key => `${key}: ${headers[key]}`).join('<br>')}</pre>
+            </body>
+          </html>`,
+        headers: {
+          ["content-type"]: "text/html",
+        }
+      }
+    }
+
+    // 4) User details retrieved. Return them as html.
+    return {
+      statusCode: 200,
+      body: userToHtml(user, headers),
+      headers: {
+        ["content-type"]: "text/html",
+      }
+    };
+  }
+  catch(e:any) {
+    return {
+      statusCode: 500,
+      body: `
         <!DOCTYPE html>
         <html>
           <body>
-            <p><b>user-details and jwt cookie header missing from the following headers received:</b></p>
-            <pre>${Object.keys(headers).map(key => `${key}: ${headers[key]}`).join('<br>')}</pre>
+            <p><b>${e.message}</b></p>
+            <pre>${e.stack}</pre>
           </body>
-        </html>`;
+        </html>`,
+      headers: {
+        ["content-type"]: "text/html",
+      }
     }
-
-    return userToHtml(user, headers);
-  }
-  catch(e:any) {
-    return `
-    <!DOCTYPE html>
-    <html>
-      <body>
-        <p><b>${e.message}</b></p>
-        <pre>${e.stack}</pre>
-      </body>
-    </html>      
-  `;
   }
 }
 
