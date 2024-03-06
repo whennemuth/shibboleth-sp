@@ -45,7 +45,7 @@ export enum AUTH_PATHS {
 /**
  * This is the lambda@edge function for origin request traffic. It will perform all saml SP operations for ensuring
  * that the user bears JWT proof of saml authentication, else it drives the authentication flow with the IDP.
- * If the APP_AUTHORIZATION environment variable is set to true, it will relinquish the "decision" to make the
+ * If the APP_AUTHORIZATION environment/context variable is set to true, it will relinquish the "decision" to make the
  * redirect to the IDP for authentication to the app (but will handle all other parts of the SP/IDP process).
  * 
  * NOTE: It would have been preferable to have designated this function for viewer requests so that it could 
@@ -56,18 +56,25 @@ export enum AUTH_PATHS {
  * @returns 
  */
 export const handler =  async (event:any) => {
+  console.log(`EVENT: ${JSON.stringify(event, null, 2)}`);
 
   await checkCache(cachedKeys);
 
   const originRequest = event.Records[0].cf.request;
   const cloudfrontDomain = event.Records[0].cf.config.distributionDomainName;
-  const { APP_AUTHORIZATION='false' } = process.env;
-  const appAuth = APP_AUTHORIZATION == 'true';
+    
+  let appAuth = true;
+  const customHdr = originRequest?.origin?.custom?.customHeaders?.app_authorization;
+  if(customHdr && 'true' == customHdr[0].value) {
+    appAuth = true;
+  }
+  else {
+    const { APP_AUTHORIZATION='false' } = process.env;
+    appAuth = APP_AUTHORIZATION == 'true';
+  }
 
   const rootUrl = `https://${cloudfrontDomain}`;
   samlTools.setAssertUrl(`${rootUrl}/assert`);
-
-  debugPrint(JSON.stringify(event, null, 2));
 
   try {
     let response;
