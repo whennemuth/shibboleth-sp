@@ -17,6 +17,8 @@ export interface IContext {
     EDGE_RESPONSE_VIEWER_FUNCTION_NAME: string;
     APP_FUNCTION_NAME:                  string;
     APP_AUTHORIZATION:                  string;
+    APP_LOGIN_HEADER:                   string;
+    APP_LOGOUT_HEADER:                  string;
     SHIBBOLETH:                         Shibboleth;
     TAGS:                               Tags;
 }
@@ -219,6 +221,8 @@ const typeMap: any = {
         { json: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", js: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", typ: "" },
         { json: "APP_FUNCTION_NAME", js: "APP_FUNCTION_NAME", typ: "" },
         { json: "APP_AUTHORIZATION", js: "APP_AUTHORIZATION", typ: "" },
+        { json: "APP_LOGIN_HEADER", js: "APP_LOGIN_HEADER", typ: "" },
+        { json: "APP_LOGOUT_HEADER", js: "APP_LOGOUT_HEADER", typ: "" },
         { json: "SHIBBOLETH", js: "SHIBBOLETH", typ: r("Shibboleth") },
         { json: "TAGS", js: "TAGS", typ: r("Tags") },
     ], false),

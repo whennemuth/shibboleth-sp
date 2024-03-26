@@ -5,8 +5,10 @@ import * as event from './lib/sp-event.json';
 import { SamlResponseObject, SendAssertResult } from './lib/Saml';
 import { MockSamlAssertResponse } from './lib/test/SamlAssertResponseFriendlyMock';
 import { JwtTools } from './lib/Jwt';
-// import { JwtTools } from './lib/Jwt';
+import { IContext } from '../../context/IContext';
+import * as contextJSON from '../../context/context.json';
 
+const context = contextJSON as IContext;
 const distributionDomainName = 'd129tjsl6pgy8.cloudfront.net';
 const uri = '/path/to/app';
 const loginUrl = 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO?SAMLRequest=some_base64_value';
@@ -359,7 +361,7 @@ else {
         const { headers:hdrs } = response;
         expect(hdrs.authenticated).toEqual([{ key: 'authenticated', value: 'true' }]);
         expect(hdrs['user-details']).toBeDefined();
-        expect(hdrs['login-url']).toBeDefined();
+        expect(hdrs[context.APP_LOGIN_HEADER]).toBeDefined();
         expect(hdrs.eduPersonAffiliation).toBeDefined();
         expect(hdrs.eduPersonEntitlement).toBeDefined();
         expect(hdrs.eduPersonPrincipalName).toBeDefined();

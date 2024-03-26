@@ -1,13 +1,14 @@
 import { CachedKeys, checkCache, getKeys } from './lib/Secrets';
 import { SamlTools, SamlToolsParms, SendAssertResult } from './lib/Saml';
 import { JwtTools } from './lib/Jwt';
-import { Shibboleth } from '../../context/IContext';
+import { IContext, Shibboleth } from '../../context/IContext';
 import * as contextJSON from '../../context/context.json';
 
 const jwtTools = new JwtTools();
-const context = contextJSON;
+const context = contextJSON as IContext;
 const debug = process.env?.DEBUG == 'true';
-const { entityId, entryPoint, logoutUrl, idpCert } = context.SHIBBOLETH as Shibboleth;
+const { APP_LOGIN_HEADER, APP_LOGOUT_HEADER, SHIBBOLETH } = context;
+const { entityId, entryPoint, logoutUrl, idpCert } = SHIBBOLETH as Shibboleth;
 // If running locally - not in lambda@edge function - shibboleth configs can come from the environment.
 const { ENTITY_ID, ENTRY_POINT, LOGOUT_URL, IDP_CERT } = process.env;
 
@@ -206,8 +207,8 @@ export const handler =  async (event:any) => {
           addHeader(response, 'buPrincipal', buPrincipal);
           addHeader(response, 'eduPersonAffiliation', eduPersonAffiliation.join(';'));
           addHeader(response, 'eduPersonEntitlement', eduPersonEntitlement.join(';'));
-          addHeader(response, 'login-url', encodeURIComponent(getAppLoginUrl()));
-          addHeader(response, 'logout-url', encodeURIComponent(getAppLogoutUrl()));
+          addHeader(response, APP_LOGIN_HEADER, encodeURIComponent(getAppLoginUrl()));
+          addHeader(response, APP_LOGOUT_HEADER, encodeURIComponent(getAppLogoutUrl()));
 
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         }
@@ -231,8 +232,8 @@ export const handler =  async (event:any) => {
           response = originRequest;
           addHeader(response, 'authenticated', 'false');
           addHeader(response, 'login', LOGIN);
-          addHeader(response, 'login-url', encodeURIComponent(getAppLoginUrl()));
-          addHeader(response, 'logout-url', encodeURIComponent(getAppLogoutUrl()));
+          addHeader(response, APP_LOGIN_HEADER, encodeURIComponent(getAppLoginUrl()));
+          addHeader(response, APP_LOGOUT_HEADER, encodeURIComponent(getAppLogoutUrl()));
           console.log('App will determine need for auth - passing through to origin');
         } 
         else {
