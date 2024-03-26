@@ -359,7 +359,7 @@ else {
         const { headers:hdrs } = response;
         expect(hdrs.authenticated).toEqual([{ key: 'authenticated', value: 'true' }]);
         expect(hdrs['user-details']).toBeDefined();
-        expect(hdrs['root-url']).toBeDefined();
+        expect(hdrs['login-url']).toBeDefined();
         expect(hdrs.eduPersonAffiliation).toBeDefined();
         expect(hdrs.eduPersonEntitlement).toBeDefined();
         expect(hdrs.eduPersonPrincipalName).toBeDefined();

@@ -73,8 +73,8 @@ export const handler =  async (event:any) => {
     appAuth = APP_AUTHORIZATION == 'true';
   }
 
-  const rootUrl = `https://${cloudfrontDomain}`;
-  samlTools.setAssertUrl(`${rootUrl}/assert`);
+  const relayDomain = `https://${cloudfrontDomain}`;
+  samlTools.setAssertUrl(`${relayDomain}/assert`);
 
   try {
     let response;
@@ -84,14 +84,21 @@ export const handler =  async (event:any) => {
     console.log(`querystring: ${querystring}`);
     const { LOGIN, LOGOUT, ASSERT, METADATA, FAVICON } = AUTH_PATHS;
 
+    const getAppLoginUrl = ():string => {
+      const relay_state = encodeURIComponent(relayDomain + uri + (querystring ? `?${querystring}` : ''));
+      return `${relayDomain}${AUTH_PATHS.LOGIN}?relay_state=${relay_state}`;
+    }
+
+    const getAppLogoutUrl = ():string => `${relayDomain}${AUTH_PATHS.LOGOUT}`;
+
     const addHeader = (response:any, keyname:string, value:string) => {
       response.headers[keyname] = [{ key: keyname, value }];
     }
-    
+
     switch(uri) {
       case LOGIN:
         console.log('User is not authenticated, initiate SAML authentication...');
-        var relayState:string|null = decodeURIComponent(qsparms ? qsparms.get('relay_state') || '' : rootUrl);
+        var relayState:string|null = decodeURIComponent(qsparms ? qsparms.get('relay_state') || '' : relayDomain);
         const loginUrl = await samlTools.createLoginRequestUrl(relayState);
         response = {
           status: '302',
@@ -123,7 +130,7 @@ export const handler =  async (event:any) => {
             status: '302',
             statusDescription: 'Found',
             headers: {
-              location: [{ key: 'Location', value: `${rootUrl}/logout?target=idp` }],
+              location: [{ key: 'Location', value: `${relayDomain}/logout?target=idp` }],
             }
           }
           jwtTools.setCookieInvalidationInResponse(response);
@@ -135,7 +142,7 @@ export const handler =  async (event:any) => {
         const result:SendAssertResult|null = await samlTools.sendAssert(originRequest);
         const message = `Authentication successful. result: ${JSON.stringify(result, null, 2)}`
         var { samlAssertResponse, relayState } = result;
-        relayState = decodeURIComponent(relayState || rootUrl);
+        relayState = decodeURIComponent(relayState || relayDomain);
         if( ! samlAssertResponse) break;
                 
         debugPrint(message);
@@ -199,7 +206,8 @@ export const handler =  async (event:any) => {
           addHeader(response, 'buPrincipal', buPrincipal);
           addHeader(response, 'eduPersonAffiliation', eduPersonAffiliation.join(';'));
           addHeader(response, 'eduPersonEntitlement', eduPersonEntitlement.join(';'));
-          addHeader(response, 'root-url', encodeURIComponent(rootUrl));
+          addHeader(response, 'login-url', encodeURIComponent(getAppLoginUrl()));
+          addHeader(response, 'logout-url', encodeURIComponent(getAppLogoutUrl()));
 
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         }
@@ -223,17 +231,17 @@ export const handler =  async (event:any) => {
           response = originRequest;
           addHeader(response, 'authenticated', 'false');
           addHeader(response, 'login', LOGIN);
+          addHeader(response, 'login-url', encodeURIComponent(getAppLoginUrl()));
+          addHeader(response, 'logout-url', encodeURIComponent(getAppLogoutUrl()));
           console.log('App will determine need for auth - passing through to origin');
         } 
         else {
           // No valid token has been found, and this is not a post authentication redirect - send user to login.
-          const relay_state = encodeURIComponent(rootUrl + uri + (querystring ? `?${querystring}` : ''));
-          const location = `${rootUrl}/login?relay_state=${relay_state}`;
           response = {
             status: '302',
             statusDescription: 'Found',
             headers: {
-              location: [{ key: 'Location', value: location }],
+              location: [{ key: 'Location', value: getAppLoginUrl() }],
             },
           };
           console.log(`No valid JWT found - redirecting: ${JSON.stringify(response, null, 2)}`); 

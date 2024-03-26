@@ -1,8 +1,8 @@
 import { JwtTools } from './lib/Jwt';
 import { Keys } from './lib/Keys';
-import { AUTH_PATHS } from './FunctionSpOrigin';
 
 const { APP_AUTHORIZATION='false' } = process?.env;
+const faviconBase64 = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AcxV/TSkUqDnYQcchQXbSLijiWViyChdJWaNXB5NIvaNKQpLg4Cq4FBz8Wqw4uzro6uAqC4AeIq4uToouU+L+k0CLGg+N+vLv3uHsHCK0aU81ADFA1y8gk42K+sCoGXxGCHwGImJSYqaeyizl4jq97+Ph6F+VZ3uf+HINK0WSATySOMd2wiDeI5zYtnfM+cZhVJIX4nHjKoAsSP3JddvmNc9lhgWeGjVwmQRwmFss9LPcwqxgq8SxxRFE1yhfyLiuctzirtQbr3JO/MFTUVrJcpzmGJJaQQpo6ktFAFTVYiNKqkWIiQ/txD/+o40+TSyZXFYwcC6hDheT4wf/gd7dmaWbaTQrFgb4X2/4YB4K7QLtp29/Htt0+AfzPwJXW9ddbwPwn6c2uFjkChraBi+uuJu8BlzvAyJMuGZIj+WkKpRLwfkbfVACGb4GBNbe3zj5OH4AcdbV8AxwcAhNlyl73eHd/b2//nun09wOl3XK7fzzCVAAAAAZiS0dEAPcA0QAGZn/NAAAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+cMAwYTIqDSv7EAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAB50lEQVRYw+2XsWsUQRSHvzczewkSBIlCUihYSEQwBkFRMJDKVhBSBISUCgYr04j5C9JYaJ3C3kZCwEoU7MRclTbBQgshkkLvbnfeszg0t5c7o3eb3Savm52dmW/e/H7DGzEwKgxHxVE5QOhsNOq1UhYdvdLqDSB7xshs2nvUWbDzYJeFeMsTL7mSj+AzyDtwL4xkISNZz6rVgH+iyJ4dLUBcdTTqNRqfajTfJtiC5Ppl10rKgAM7JcQbXb+PSbEu6J8KcLuG/6B/PumSoOPDA0jnTdh8n/R3QUfoY0c6H7DR4W04kAhly/CbsZBLfDCAdSPcjySvs6PVQFx1pLdDe6cR3DcjeZYhG+2t+xXFr+ynM33pidP+gFNG5tLcnP+fAWmj6oSgN4UiI/xz2lsgXxT3RssD8MuKX2717be7gryy8kX4e/F4x5V3BJwBuwA2Leg1Rzbj8dtaLICdlNJqguOSrBiArtHS7G3fvLWkOAA70VUfbB+0pPuaF6qNFZgBPS0w1bG550rYjMhPgxTcjuLX8gB6Tga0YR8PZQ894VFst79DWIwEYm/gB4JOumJFmM164tPDp7F7QroYhriI/iLEdD4Qryv+o+LqhmwZ/ACbEmxGiFcd8aIDf0hFVMXDRI4fp1UD/AJxjqN8NNTlNgAAAABJRU5ErkJggg==';
 
 /**
  * This is a lambda function that represents an "application" that one will have access to after having
@@ -49,12 +49,8 @@ const handler = async (event:any) => {
  * @returns 
  */
 const getLoginResponse = (event:any) => {
-  const { headers, rawPath, rawQueryString } = event;
-  const rootUrl = decodeURIComponent(headers['root-url']);
-  let loginUrl = `${rootUrl.replace(/\/+$/, '')}/${AUTH_PATHS.LOGIN.replace(/^\/+/, '')}`;
-  const relay_state = encodeURIComponent(rootUrl + rawPath + (rawQueryString ? `?${rawQueryString}` : ''));
-  loginUrl = `${loginUrl}?relay_state=${relay_state}`
-
+  const { headers } = event;
+  const loginUrl = decodeURIComponent(headers['login-url']);
   const loginResponse = {
     statusCode: 302,
     // body: "login",
@@ -124,14 +120,25 @@ const getOkResponse = (event:any) => {
 
     // 3) If no jwt or expected jwt content, respond with warning and list out what headers were found.
     if( ! user) {
+      const loginUrl = decodeURIComponent(headers['login-url']);
       return {
         statusCode: 200,
         body: `
           <!DOCTYPE html>
           <html>
+            <head>
+              <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+              <link rel="shortcut icon" href="data:image/x-icon;base64,${faviconBase64}" />
+            </head>
             <body>
-              <p><b>user-details and jwt cookie header missing from the following headers received:</b></p>
-              <pre>${Object.keys(headers).map(key => `${key}: ${headers[key]}`).join('<br>')}</pre>
+              <p style="padding:30px; font-weight:bold; font-size:24px;">
+                Welcome, whoever you are. You do not seem to be authenticated, but this is a public portion of the website. 
+                <button class="btn btn-primary btn-lg" type="button" onclick="document.location.href = '${loginUrl}';">Login</button> 
+              </p>
+              <p style="padding:30px; font-weight:bold; font-size:24px;">
+                user-details and jwt cookie header missing, but here are the remaining headers:
+              </p>
+              <pre style='padding-left:30px;font-size:14px;'>${Object.keys(headers).map(key => `${key}: ${headers[key]}`).join('<br>')}</pre>
             </body>
           </html>`,
         headers: {
@@ -174,14 +181,7 @@ const getOkResponse = (event:any) => {
  * @returns 
  */
 const userToHtml = (user:any, headers:any) => {
-  const username = findFirstFieldValue(user, 'givenName', 'eduPersonNickname', 'buPrincipal', 'mail');
-  const rootUrl = decodeURIComponent(headers['root-url']);
-  // Build the logout url by putting together the host and logout path, making sure that only one '/' is between them.
-  const logoutUrl = `${rootUrl.replace(/\/+$/, '')}/${AUTH_PATHS.LOGOUT.replace(/^\/+/, '')}`;
-  const faviconBase64 = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AcxV/TSkUqDnYQcchQXbSLijiWViyChdJWaNXB5NIvaNKQpLg4Cq4FBz8Wqw4uzro6uAqC4AeIq4uToouU+L+k0CLGg+N+vLv3uHsHCK0aU81ADFA1y8gk42K+sCoGXxGCHwGImJSYqaeyizl4jq97+Ph6F+VZ3uf+HINK0WSATySOMd2wiDeI5zYtnfM+cZhVJIX4nHjKoAsSP3JddvmNc9lhgWeGjVwmQRwmFss9LPcwqxgq8SxxRFE1yhfyLiuctzirtQbr3JO/MFTUVrJcpzmGJJaQQpo6ktFAFTVYiNKqkWIiQ/txD/+o40+TSyZXFYwcC6hDheT4wf/gd7dmaWbaTQrFgb4X2/4YB4K7QLtp29/Htt0+AfzPwJXW9ddbwPwn6c2uFjkChraBi+uuJu8BlzvAyJMuGZIj+WkKpRLwfkbfVACGb4GBNbe3zj5OH4AcdbV8AxwcAhNlyl73eHd/b2//nun09wOl3XK7fzzCVAAAAAZiS0dEAPcA0QAGZn/NAAAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+cMAwYTIqDSv7EAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAB50lEQVRYw+2XsWsUQRSHvzczewkSBIlCUihYSEQwBkFRMJDKVhBSBISUCgYr04j5C9JYaJ3C3kZCwEoU7MRclTbBQgshkkLvbnfeszg0t5c7o3eb3Savm52dmW/e/H7DGzEwKgxHxVE5QOhsNOq1UhYdvdLqDSB7xshs2nvUWbDzYJeFeMsTL7mSj+AzyDtwL4xkISNZz6rVgH+iyJ4dLUBcdTTqNRqfajTfJtiC5Ppl10rKgAM7JcQbXb+PSbEu6J8KcLuG/6B/PumSoOPDA0jnTdh8n/R3QUfoY0c6H7DR4W04kAhly/CbsZBLfDCAdSPcjySvs6PVQFx1pLdDe6cR3DcjeZYhG+2t+xXFr+ynM33pidP+gFNG5tLcnP+fAWmj6oSgN4UiI/xz2lsgXxT3RssD8MuKX2717be7gryy8kX4e/F4x5V3BJwBuwA2Leg1Rzbj8dtaLICdlNJqguOSrBiArtHS7G3fvLWkOAA70VUfbB+0pPuaF6qNFZgBPS0w1bG550rYjMhPgxTcjuLX8gB6Tga0YR8PZQ894VFst79DWIwEYm/gB4JOumJFmM164tPDp7F7QroYhriI/iLEdD4Qryv+o+LqhmwZ/ACbEmxGiFcd8aIDf0hFVMXDRI4fp1UD/AJxjqN8NNTlNgAAAABJRU5ErkJggg==';
-
-  console.log(`Username: ${username}`);
-  
+  const logoutUrl = decodeURIComponent(headers['logout-url']);
   const userJson = JSON.stringify(user, null, 2);
   let preContent = userJson.replace(/\n/g, '<br>').replace(/\\"/g, '"');
   do {
