@@ -8,7 +8,6 @@
 // match the expected interface, even if the JSON is valid.
 
 export interface IContext {
-    SCENARIO:                           string;
     STACK_ID:                           string;
     ACCOUNT:                            string;
     REGION:                             string;
@@ -16,11 +15,18 @@ export interface IContext {
     EDGE_REQUEST_ORIGIN_FUNCTION_NAME:  string;
     EDGE_RESPONSE_VIEWER_FUNCTION_NAME: string;
     APP_FUNCTION_NAME:                  string;
+    APP_ALB_DNS:                        AppAlbDNS;
     APP_AUTHORIZATION:                  string;
     APP_LOGIN_HEADER:                   string;
     APP_LOGOUT_HEADER:                  string;
     SHIBBOLETH:                         Shibboleth;
     TAGS:                               Tags;
+}
+
+export interface AppAlbDNS {
+    name:      string;
+    httpPort:  number;
+    httpsPort: number;
 }
 
 export interface Shibboleth {
@@ -212,7 +218,6 @@ function r(name: string) {
 
 const typeMap: any = {
     "IContext": o([
-        { json: "SCENARIO", js: "SCENARIO", typ: "" },
         { json: "STACK_ID", js: "STACK_ID", typ: "" },
         { json: "ACCOUNT", js: "ACCOUNT", typ: "" },
         { json: "REGION", js: "REGION", typ: "" },
@@ -220,11 +225,17 @@ const typeMap: any = {
         { json: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", js: "EDGE_REQUEST_ORIGIN_FUNCTION_NAME", typ: "" },
         { json: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", js: "EDGE_RESPONSE_VIEWER_FUNCTION_NAME", typ: "" },
         { json: "APP_FUNCTION_NAME", js: "APP_FUNCTION_NAME", typ: "" },
+        { json: "APP_ALB_DNS", js: "APP_ALB_DNS", typ: r("AppAlbDNS") },
         { json: "APP_AUTHORIZATION", js: "APP_AUTHORIZATION", typ: "" },
         { json: "APP_LOGIN_HEADER", js: "APP_LOGIN_HEADER", typ: "" },
         { json: "APP_LOGOUT_HEADER", js: "APP_LOGOUT_HEADER", typ: "" },
         { json: "SHIBBOLETH", js: "SHIBBOLETH", typ: r("Shibboleth") },
         { json: "TAGS", js: "TAGS", typ: r("Tags") },
+    ], false),
+    "AppAlbDNS": o([
+        { json: "name", js: "name", typ: "" },
+        { json: "httpPort", js: "httpPort", typ: 0 },
+        { json: "httpsPort", js: "httpsPort", typ: 0 },
     ], false),
     "Shibboleth": o([
         { json: "entityId", js: "entityId", typ: "" },

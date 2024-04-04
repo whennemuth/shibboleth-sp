@@ -1,10 +1,10 @@
 import { CfnOutput, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { IContext } from '../context/IContext';
-import { HttpOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
+import { HttpOrigin, HttpOriginProps } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { FunctionUrl, FunctionUrlAuthType, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { AllowedMethods, CachePolicy, Distribution, LambdaEdgeEventType, OriginBindConfig, OriginBindOptions, OriginProtocolPolicy, OriginRequestPolicy, PriceClass, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
+import { AllowedMethods, BehaviorOptions, CachePolicy, Distribution, EdgeLambda, LambdaEdgeEventType, OriginBindConfig, OriginBindOptions, OriginProtocolPolicy, OriginRequestPolicy, PriceClass, ViewerProtocolPolicy } from 'aws-cdk-lib/aws-cloudfront';
 import { Effect, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Bucket, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
 
@@ -43,30 +43,76 @@ export class LambdaShibbolethStackResources extends Construct {
       }),
     });
 
-    // Lambda@Edge viewer response function
-    const edgeFunctionViewer = new NodejsFunction(stack, 'EdgeFunctionViewer',{
-      runtime: Runtime.NODEJS_18_X,
-      entry: 'lib/lambda/FunctionSpViewer.ts',
-      functionName: context.EDGE_RESPONSE_VIEWER_FUNCTION_NAME,
-    });
+    let origin = {} as HttpOrigin;
+    
+    let edgeLambdas = [
+      {
+        // eventType: LambdaEdgeEventType.VIEWER_REQUEST,
+        eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+        functionVersion: edgeFunctionOrigin.currentVersion,
+        includeBody: true
+      },
+    ] as EdgeLambda[];
 
-    // Simple lambda-based web app
-    const appFunction = new NodejsFunction(stack, 'AppFunction', {
-      runtime: Runtime.NODEJS_18_X,
-      entry: 'lib/lambda/FunctionApp.ts',
-      timeout: Duration.seconds(10),
-      functionName: context.APP_FUNCTION_NAME,     
-      environment: {
-        APP_AUTHORIZATION: context.APP_AUTHORIZATION
-      }
-    });
+    if(context.APP_ALB_DNS) {
 
-    // Lambda function url for the web app.
-    const appFuncUrl = new FunctionUrl(appFunction, 'Url', {
-      function: appFunction,
-      // authType: FunctionUrlAuthType.AWS_IAM,
-      authType: FunctionUrlAuthType.NONE,      
-    })
+      // The ALB is not public facing and does not need to perform ssl termination.
+      const { name, httpPort } = context.APP_ALB_DNS;
+      origin = new HttpOrigin(name, {
+        protocolPolicy: OriginProtocolPolicy.HTTP_ONLY,
+        httpPort,
+        originPath: '/',
+        customHeaders: {
+          APP_AUTHORIZATION: `${'false' == context?.APP_AUTHORIZATION ? 'false' : 'true' }`
+        }       
+      } as HttpOriginProps);
+      
+    }
+    else {
+      
+      // Lambda@Edge viewer response function
+      const edgeFunctionViewer = new NodejsFunction(stack, 'EdgeFunctionViewer',{
+        runtime: Runtime.NODEJS_18_X,
+        entry: 'lib/lambda/FunctionSpViewer.ts',
+        functionName: context.EDGE_RESPONSE_VIEWER_FUNCTION_NAME,
+      });
+
+      // Simple lambda-based web app
+      const appFunction = new NodejsFunction(stack, 'AppFunction', {
+        runtime: Runtime.NODEJS_18_X,
+        entry: 'lib/lambda/FunctionApp.ts',
+        timeout: Duration.seconds(10),
+        functionName: context.APP_FUNCTION_NAME,     
+        environment: {
+          APP_AUTHORIZATION: context.APP_AUTHORIZATION
+        }
+      });
+
+      // Lambda function url for the web app.
+      const appFuncUrl = new FunctionUrl(appFunction, 'Url', {
+        function: appFunction,
+        // authType: FunctionUrlAuthType.AWS_IAM,
+        authType: FunctionUrlAuthType.NONE,      
+      });
+
+      origin = new HttpOrigin(Fn.select(2, Fn.split('/', appFuncUrl.url)), {
+        protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+        httpsPort: 443,
+        originPath: '/',
+        customHeaders: {
+          APP_AUTHORIZATION: `${'false' == context?.APP_AUTHORIZATION ? 'false' : 'true' }`
+        }       
+      } as HttpOriginProps)
+
+      edgeLambdas.push({
+        eventType: LambdaEdgeEventType.VIEWER_RESPONSE,
+        functionVersion: edgeFunctionViewer.currentVersion,
+      } as EdgeLambda);
+
+      appFuncUrl.grantInvokeUrl(edgeFunctionOrigin);
+    }
+
+    
 
     // CloudFront Distribution
     const cloudFrontDistribution = new Distribution(stack, 'MyCloudFrontDistribution', {
@@ -85,14 +131,8 @@ export class LambdaShibbolethStackResources extends Construct {
          *    dg4qdeehraanv7q33ljsrfztae0fwyvz.lambda-url.us-east-2.on.aws
          * 'https://' is removed (Note: trailing '/' is also removed)
          */
-        origin: new HttpOrigin(Fn.select(2, Fn.split('/', appFuncUrl.url)), {
-          protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
-          httpsPort: 443,
-          originPath: '/',
-          customHeaders: {
-            APP_AUTHORIZATION: `${'false' == context?.APP_AUTHORIZATION ? 'false' : 'true' }`
-          }       
-        }),
+        origin,
+        edgeLambdas,
         allowedMethods: AllowedMethods.ALLOW_ALL,
         cachedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
         viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -104,27 +144,13 @@ export class LambdaShibbolethStackResources extends Construct {
         cachePolicy: CachePolicy.CACHING_DISABLED,
         /** 
          * NOTE: This origin request policy is necessary to get querystring in edge lambda events, and exclude the
-         * host header from the origing (the app lambda), which, coming from cloudfront would resemble something 
+         * host header from the origin (the app lambda), which, coming from cloudfront would resemble something 
          * similar to d12345678.cloudfront.net and would not be recognized by the Lambda, resulting in 403.
          * SEE: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
          */
         originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-        edgeLambdas: [
-          {
-            // eventType: LambdaEdgeEventType.VIEWER_REQUEST,
-            eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
-            functionVersion: edgeFunctionOrigin.currentVersion,
-            includeBody: true
-          },
-          {
-            eventType: LambdaEdgeEventType.VIEWER_RESPONSE,
-            functionVersion: edgeFunctionViewer.currentVersion,
-          }
-        ]
       },
     });
-
-    appFuncUrl.grantInvokeUrl(edgeFunctionOrigin);
   
     // Outputs
     new CfnOutput(stack, 'CloudFrontDistributionURL', {

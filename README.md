@@ -41,6 +41,9 @@ A more detailed view of the interaction between the end-user, origin request lam
    export AWS_PROFILE=[your profile]
    ```
 
+2. Set the values for the [Runtime Context](https://docs.aws.amazon.com/cdk/v2/guide/context.html) by modifying the `./context/context.json` file accordingly.
+   Most fields in `./context/context.json` are self-explanatory, but any additional explanation that might be needed can be found [here](./context/README.md).
+   
 2. Deploy the stack from scratch
 
    ```
