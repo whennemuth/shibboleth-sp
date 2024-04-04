@@ -76,6 +76,7 @@ export class LambdaShibbolethStackResources extends Construct {
         autoDeleteObjects: true,
         objectOwnership: ObjectOwnership.OBJECT_WRITER
       }),
+      comment: `shib-lambda-${context.TAGS.Landscape}-distribution`,
       defaultBehavior: {
         /**
          * This split function should take a function url like this:
