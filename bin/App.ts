@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 import { App, Stack } from 'aws-cdk-lib';
 import { BuildOptions, BuildResult, build } from 'esbuild';
-import * as fs from 'fs';
 import 'source-map-support/register';
-import { Convert, IContext } from '../context/IContext';
-import { LambdaShibbolethStackResources } from '../lib/StackResources';
-
-
-const context:IContext = Convert.toIContext(fs.readFileSync('./context/context.json', 'utf-8'));
+import { IContext } from '../context/IContext';
+import * as ctx from '../context/context.json';
+import { CloudfrontDistribution } from '../lib/Distribution';
 
 const app = new App();
+const context = ctx as IContext;
 app.node.setContext('stack-parms', context);
 const stackName = `${context.STACK_ID}-${context.TAGS.Landscape}`;
 
@@ -35,7 +33,7 @@ for (const [key, value] of Object.entries(tags)) {
 
 if( context.REGION != 'us-east-1' ) {
   // Gotta build the lambda code asset manually due to using EdgeLambda instead of NodejsFunction
-  const { EDGE_REQUEST_ORIGIN_CODE_FILE:outfile } = LambdaShibbolethStackResources
+  const { EDGE_REQUEST_ORIGIN_CODE_FILE:outfile } = CloudfrontDistribution
   build({
     entryPoints: ['lib/lambda/FunctionSpOrigin.ts'],
     write: true,
@@ -45,12 +43,12 @@ if( context.REGION != 'us-east-1' ) {
     external: ['@aws-sdk/*']
   } as BuildOptions)
   .then((result:BuildResult) => {
-    new LambdaShibbolethStackResources(stack, stackName);
+    new CloudfrontDistribution(stack, stackName);
   })
   .catch((reason) => {
     console.log(JSON.stringify(reason, Object.getOwnPropertyNames(reason), 2));
   });
 }
 else {
-  new LambdaShibbolethStackResources(stack, stackName);
+  new CloudfrontDistribution(stack, stackName);
 }

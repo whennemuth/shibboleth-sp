@@ -6,16 +6,25 @@
   "EDGE_REQUEST_ORIGIN_FUNCTION_NAME": "SPFunctionOrigin",
   "EDGE_RESPONSE_VIEWER_FUNCTION_NAME": "SPFunctionViewer",
   "APP_FUNCTION_NAME": "AppFunction",
-  "APP_ALB_DNS": {
-    "name": "wp-jaydubbulb-alb-devl-1167093510.us-east-2.elb.amazonaws.com",
-    "httpPort": 8081,
-    "httpsPort": 443
-  },
-  "APP_AUTHORIZATION": "true",
+  "ORIGIN": {
+    "originType": "alb",
+    "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188",
+    "dnsName": "wp-wp-alb-devl-1137169289.us-east-1.elb.amazonaws.com",
+    "httpPort": 80,
+    "httpsPort": 443,
+    "hostedZone": "webteam.bu.edu",
+    "hostedDomain": "wp.devl.webteam.bu.edu",
+    "certificateARN": "arn:aws:acm:us-east-1:037860335094:certificate/54d49c16-5fd2-4b07-af90-65c830cf7c04",
+    "appAuthorization": true,
+    "cloudfrontChallenge": {
+      "headerName": "cloudfront-challenge",
+      "headerValue": "apples"
+    }
+  },  
   "APP_LOGIN_HEADER": "SHIB-HANDLER",
   "APP_LOGOUT_HEADER": "SHIB_IDP_LOGOUT",
   "SHIBBOLETH": {
-    "entityId": "https://*.kualitest.research.bu.edu/shibboleth",
+    "entityId": "https://*.webteam.bu.edu/shibboleth",
     "idpCert": "MIIDPDCCAiSgAwIBAgIVAJ6eiJuZK4QyWfKYUqfJdhx4wzkPMA0GCSqGSIb3DQEBBQUAMB8xHTAbBgNVBAMTFHdlYmxvZ2luLXRlc3QuYnUuZWR1MB4XDTEwMDkxNTE0Mjg0OFoXDTMwMDkxNTE0Mjg0OFowHzEdMBsGA1UEAxMUd2VibG9naW4tdGVzdC5idS5lZHUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCI5moQtXWSwpI/nt/fppWlIh4KDpF7AoetWTiSekjj6rQNIAVV1BiTGjvcPSsQzdEJZKpgO6tjMxPi8UiP8yXgcklzgsrHHGuIlQt6dwZNgS9IxkDnNTn8YqHoFoIm1v/po34qFERVzAo2n8SphHz3Pfp5BBH/Xc2q/IHxtBbSlhszx+2qYCzUuIVgONR+dN63ZmoRYoEakjosuTHxSqHxTXrPpE01FLCEfMXJlploh6ZrV96Y5pScMnn8ULr0Sgsq8x4qCDP2llEXRAsn/WWpzzmTFxGezzXgA2OQLeDMbq6SqmZ7E7dNEu244E9l1JnHLQBsPe9PXP/QEV7h+f/5AgMBAAGjbzBtMEwGA1UdEQRFMEOCFHdlYmxvZ2luLXRlc3QuYnUuZWR1hitodHRwczovL3dlYmxvZ2luLXRlc3QuYnUuZWR1L2lkcC9zaGliYm9sZXRoMB0GA1UdDgQWBBTPzLtx4wmThF7g6C3eCj6zw4tfszANBgkqhkiG9w0BAQUFAAOCAQEAC3lmttoHGXIHfEL75ViI8EyQD44J+bKIYTvbvQmBLS7Lw4iNgalmHnOgs5RBB5oIzOVWgeRUv0bwl48Gp4F9k7cXXDTwZRUxYc6kV9d/dEOCyOEDl4cDhsbM/TJJHPOVLhhPJXec07b3qxb4SaU/YP0ZiE+zD4FqikvZYkD20blmDIJbKPZvBlqfYZ0bBEdnKbWRH8uvFxgm1cz3+azzIWjqGXc7259shmJc391vNwva8SzJG9mUghTKGW1tdu3uoF6tIf/a3sUPxL+z0F0newS75gUl4ccWCjO4TuDgfyJEcjIZ0CYyIvzmtiWg7ZJxvG0zzYcx1ps3hT3nP38erw==",
     "entryPoint": "https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO",
     "logoutUrl": "https://shib-test.bu.edu/idp/logout.jsp",
@@ -29,8 +38,8 @@
     }
   },
   "TAGS": {
-    "Service": "client",
-    "Function": "ett",
-    "Landscape": "dev"
+    "Service": "websites",
+    "Function": "wordpress",
+    "Landscape": "devl"
   }
 }

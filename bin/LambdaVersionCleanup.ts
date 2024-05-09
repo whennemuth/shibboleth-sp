@@ -1,9 +1,9 @@
-import { LambdaClient, ListVersionsByFunctionCommand, ListVersionsByFunctionCommandOutput, DeleteFunctionCommand, ResourceNotFoundException } from "@aws-sdk/client-lambda"
-import { CloudFrontClient, DistributionSummary, GetDistributionCommand, GetDistributionCommandOutput, ListDistributionsCommand, ListDistributionsResult, UpdateDistributionCommand,  } from "@aws-sdk/client-cloudfront";
-import { IContext, Convert } from '../context/IContext';
-import * as fs from 'fs';
+import { CloudFrontClient, DistributionSummary, GetDistributionCommand, GetDistributionCommandOutput, ListDistributionsCommand, ListDistributionsResult, UpdateDistributionCommand, } from "@aws-sdk/client-cloudfront";
+import { DeleteFunctionCommand, LambdaClient, ListVersionsByFunctionCommand, ListVersionsByFunctionCommandOutput } from "@aws-sdk/client-lambda";
+import { IContext } from '../context/IContext';
+import * as ctx from '../context/context.json';
 
-const context:IContext = Convert.toIContext(fs.readFileSync('./context/context.json', 'utf-8'));
+const context = ctx as IContext;
 const client = new LambdaClient();
 const cloudFrontClient = new CloudFrontClient();
 process.env.AWS_REGION = context.REGION;
