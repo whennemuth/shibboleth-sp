@@ -89,7 +89,7 @@ export class CloudfrontDistribution extends Construct {
   private validateContext = () => {
     const { context: { ORIGIN }, isBlankString } = this;
     if( ! ORIGIN) {
-      throw new Error('An ORIGIN was not defined in context.json');
+      return;
     }
     const { originType, arn, certificateARN, hostedDomain, hostedZone } = ORIGIN;
 
