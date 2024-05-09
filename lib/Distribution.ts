@@ -10,6 +10,7 @@ import { createEdgeFunction } from './EdgeFunction';
 import { getAlbOrigin } from './OriginAlb';
 import { getFunctionUrlOrigin } from './OriginFunctionUrl';
 import path = require('path');
+import { createARecord } from './Route53';
 
 /**
  * This construct creates the cloudfront distribution, along with the edge functions and origins that
@@ -129,7 +130,7 @@ export class CloudfrontDistribution extends Construct {
   private createDistribution = () => {
     const { stack, context, origin, testOrigin, edgeLambdas, isBlankString } = this;
     const { TAGS, STACK_ID, ORIGIN } = context;
-    const { hostedDomain, certificateARN } = ORIGIN || {};
+    const { hostedDomain, hostedZone, certificateARN } = ORIGIN || {};
     const distributionName = `${STACK_ID}-cloudfront-distribution-${TAGS.Landscape}`;
     const domainNames = [] as string[];
     
@@ -201,6 +202,17 @@ export class CloudfrontDistribution extends Construct {
 
     // Create the cloudFront distribution
     this.cloudFrontDistribution = new Distribution(stack, distributionName, distributionProps);
+
+    // Create an A record in route 53 with the distribution as the target.
+    if(customDomain()) {
+      createARecord({
+        scope:this, 
+        distribution:this.cloudFrontDistribution, 
+        hostedZone: hostedZone!, 
+        id: `${distributionName}-ARecord`,
+        recordName: hostedDomain!
+      });
+    }
   }
 
 }
