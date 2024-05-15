@@ -54,7 +54,7 @@ const handler = async (event:any) => {
  */
 const getLoginResponse = (event:any) => {
   const { headers } = event;
-  const loginUrl = decodeURIComponent(headers[APP_LOGIN_HEADER]);
+  const loginUrl = decodeURIComponent(headers[`${APP_LOGIN_HEADER}`.toLowerCase()]);
   const loginResponse = {
     statusCode: 302,
     // body: "login",
@@ -124,7 +124,7 @@ const getOkResponse = (event:any) => {
 
     // 3) If no jwt or expected jwt content, respond with warning and list out what headers were found.
     if( ! user) {
-      const loginUrl = decodeURIComponent(headers[APP_LOGIN_HEADER]);
+      const loginUrl = decodeURIComponent(headers[`${APP_LOGIN_HEADER}`.toLowerCase()]);
       return {
         statusCode: 200,
         body: `
@@ -185,7 +185,7 @@ const getOkResponse = (event:any) => {
  * @returns 
  */
 const userToHtml = (user:any, headers:any) => {
-  const logoutUrl = decodeURIComponent(headers[APP_LOGOUT_HEADER]);
+  const logoutUrl = decodeURIComponent(headers[`${APP_LOGOUT_HEADER}`.toLowerCase()]);
   const userJson = JSON.stringify(user, null, 2);
   let preContent = userJson.replace(/\n/g, '<br>').replace(/\\"/g, '"');
   do {
