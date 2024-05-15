@@ -6,7 +6,8 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket, ObjectOwnership } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import { IContext, OriginAlb, OriginFunctionUrl, OriginType } from '../context/IContext';
-import { createEdgeFunction } from './EdgeFunction';
+import { createEdgeFunctionForOriginRequest } from './EdgeFunctionOriginRequest';
+import { createEdgeFunctionForViewerResponse } from './EdgeFunctionViewerResponse';
 import { getAlbOrigin } from './OriginAlb';
 import { getFunctionUrlOrigin } from './OriginFunctionUrl';
 import { createARecord } from './Route53';
@@ -19,7 +20,8 @@ import path = require('path');
  */
 export class CloudfrontDistribution extends Construct {
   // The path of the origin request edge lambda code asset relative to the root of the project
-  public static EDGE_REQUEST_ORIGIN_CODE_FILE:string = 'cdk.out/asset.origin.request/index.js';
+  public static EDGE_ORIGIN_REQUEST_CODE_FILE:string = 'cdk.out/asset.origin.request/index.js';
+  public static EDGE_VIEWER_RESPONSE_CODE_FILE:string = 'cdk.out/asset.viewer.response/index.js';
   
   private stack:Construct;
   private context:IContext;
@@ -35,23 +37,26 @@ export class CloudfrontDistribution extends Construct {
 
     this.stack = stack;
 
-    const context = stack.node.getContext('stack-parms');
-    this.context = context;
+    this.context = stack.node.getContext('stack-parms');
     
-    const { validateContext, createDistribution, edgeFunctionForOriginRequest, edgeLambdas } = this;
+    const { context } = this;
+    const { validateContext, createDistribution, edgeLambdas } = this;
     const { REGION, ORIGIN } = context;
 
     // 1) Validate context parameters
     validateContext();
 
-    // 2) Create lambda@Edge function
+    // 2) Create lambda@Edge functions
     const scope = REGION == 'us-east-1' ? stack : this;
-    createEdgeFunction(scope, context, (edgeLambda:any, ) => {
+    createEdgeFunctionForOriginRequest(scope, context, (edgeLambda:any) => {
       edgeLambdas.push(edgeLambda);
-      if(REGION == 'us-east-1') {
-        this.edgeFunctionForOriginRequest = edgeLambda;
-      }
+      this.edgeFunctionForOriginRequest = edgeLambda;
     });
+    createEdgeFunctionForViewerResponse(scope, context, (edgeLambda:any) => {
+      edgeLambdas.push(edgeLambda);
+    });
+
+    const { edgeFunctionForOriginRequest } = this;
 
     // 3) Create the primary origin if indicated.
     if(ORIGIN) {
@@ -61,7 +66,7 @@ export class CloudfrontDistribution extends Construct {
           break;
         case OriginType.FUNCTION_URL:
           this.origin = getFunctionUrlOrigin({
-            stack, context, edgeFunctionForOriginRequest, edgeLambdas, origin:(ORIGIN as OriginFunctionUrl)
+            stack, context, edgeFunctionForOriginRequest, origin:(ORIGIN as OriginFunctionUrl)
           }) as HttpOrigin;
           break;
       };
@@ -70,8 +75,7 @@ export class CloudfrontDistribution extends Construct {
     // 4) Create the test origin
     const testOrigin = { originType:OriginType.FUNCTION_URL } as OriginFunctionUrl;
     this.testOrigin = getFunctionUrlOrigin({
-      // Omission of the OriginFunctionUrl.url parameter signifies this is the test origin.
-      stack, context, edgeFunctionForOriginRequest, edgeLambdas, origin: testOrigin
+      stack, context, edgeFunctionForOriginRequest, origin: testOrigin
     });
 
     // 5) Create the distribution

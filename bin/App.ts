@@ -33,15 +33,24 @@ for (const [key, value] of Object.entries(tags)) {
 
 if( context.REGION != 'us-east-1' ) {
   // Gotta build the lambda code asset manually due to using EdgeLambda instead of NodejsFunction
-  const { EDGE_REQUEST_ORIGIN_CODE_FILE:outfile } = CloudfrontDistribution
+  const { EDGE_ORIGIN_REQUEST_CODE_FILE, EDGE_VIEWER_RESPONSE_CODE_FILE } = CloudfrontDistribution
   build({
     entryPoints: ['lib/lambda/FunctionSpOrigin.ts'],
     write: true,
-    outfile,
+    outfile: EDGE_ORIGIN_REQUEST_CODE_FILE,
     bundle: true,
     platform: 'node',
     external: ['@aws-sdk/*']
   } as BuildOptions)
+  .then((result:BuildResult) => {
+    return build({
+      entryPoints: ['lib/lambda/FunctionSpViewer.ts'],
+      write: true,
+      outfile: EDGE_VIEWER_RESPONSE_CODE_FILE,
+      bundle: true,
+      platform: 'node'
+    } as BuildOptions);
+  })
   .then((result:BuildResult) => {
     new CloudfrontDistribution(stack, stackName);
   })

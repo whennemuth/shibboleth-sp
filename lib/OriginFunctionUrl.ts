@@ -1,17 +1,16 @@
-import { EdgeLambda, LambdaEdgeEventType, OriginProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
-import { IContext, OriginFunctionUrl } from "../context/IContext";
-import { HttpOrigin, HttpOriginProps } from "aws-cdk-lib/aws-cloudfront-origins";
 import { Duration, Fn } from "aws-cdk-lib";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { OriginProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
+import { HttpOrigin, HttpOriginProps } from "aws-cdk-lib/aws-cloudfront-origins";
 import { FunctionUrl, FunctionUrlAuthType, Runtime } from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
+import { IContext, OriginFunctionUrl } from "../context/IContext";
 
 export type OriginFunctionUrlConfig = {
   origin:OriginFunctionUrl,
   stack: Construct, 
   context: IContext, 
-  edgeFunctionForOriginRequest:NodejsFunction|undefined, 
-  edgeLambdas: EdgeLambda[]
+  edgeFunctionForOriginRequest:NodejsFunction|undefined
 }
 
 export const getFunctionUrlOrigin = (config:OriginFunctionUrlConfig):HttpOrigin  => {
@@ -22,23 +21,14 @@ export const getFunctionUrlOrigin = (config:OriginFunctionUrlConfig):HttpOrigin 
   return getDummyLambdaAppOrigin(config);
 }
 
-export const DUMMY_BEHAVIOR_PATH = '/testing123/'
-
 /**
  * Create an origin to add to the cloudfront distribution that targets a "dummy" target application
  * comprised of a single lambda function with a function url to address it by.
  */
 const getDummyLambdaAppOrigin = (config:OriginFunctionUrlConfig):HttpOrigin => {
-  const { origin, stack, context, edgeFunctionForOriginRequest, edgeLambdas } = config;
-  const { APP_FUNCTION_NAME, EDGE_RESPONSE_VIEWER_FUNCTION_NAME } = context;
-  const { appAuthorization=true } = origin;
-    
-  // Lambda@Edge viewer response function
-  const edgeFunctionViewer = new NodejsFunction(stack, 'EdgeFunctionViewer', {
-    runtime: Runtime.NODEJS_18_X,
-    entry: 'lib/lambda/FunctionSpViewer.ts',
-    functionName: EDGE_RESPONSE_VIEWER_FUNCTION_NAME,
-  });
+  const { stack, context } = config;
+  const { APP_FUNCTION_NAME, ORIGIN } = context;
+  const { appAuthorization=true } = ORIGIN || {};
 
   // Simple lambda-based web app
   const appFunction = new NodejsFunction(stack, 'AppFunction', {
@@ -46,7 +36,7 @@ const getDummyLambdaAppOrigin = (config:OriginFunctionUrlConfig):HttpOrigin => {
     entry: 'lib/lambda/FunctionApp.ts',
     timeout: Duration.seconds(10),
     functionName: APP_FUNCTION_NAME,     
-    environment: { APP_AUTHORIZATION: `${origin.appAuthorization}` }
+    environment: { APP_AUTHORIZATION: `${appAuthorization}` }
   });
 
   // Lambda function url for the web app.
@@ -70,15 +60,6 @@ const getDummyLambdaAppOrigin = (config:OriginFunctionUrlConfig):HttpOrigin => {
       APP_AUTHORIZATION: `${appAuthorization}`
     }       
   } as HttpOriginProps);
-
-  edgeLambdas.push({
-    eventType: LambdaEdgeEventType.VIEWER_RESPONSE,
-    functionVersion: edgeFunctionViewer.currentVersion,
-  } as EdgeLambda);
-
-  if(edgeFunctionForOriginRequest != undefined) {
-    appFuncUrl.grantInvokeUrl(edgeFunctionForOriginRequest);
-  }
 
   return funcUrlOrigin;
 }

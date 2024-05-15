@@ -35,7 +35,7 @@ const getEdgeFunctionLoggingPolicy = ():PolicyStatement => {
  * It can be bundled as normal because the stack is in the correct region.
  */
 const createSameRegionEdgeFunction = (stack:Construct, context:IContext):NodejsFunction => {
-  const ftn = new NodejsFunction(stack, 'edge-function-origin', {
+  const ftn = new NodejsFunction(stack, 'edge-function-origin-request', {
     runtime: Runtime.NODEJS_18_X,
     entry: 'lib/lambda/FunctionSpOrigin.ts',
     functionName: context.EDGE_REQUEST_ORIGIN_FUNCTION_NAME,
@@ -61,10 +61,14 @@ const createSameRegionEdgeFunction = (stack:Construct, context:IContext):NodejsF
  * group that allows ingress from a cloudfront distribution (the one created by this stack) that is in a 
  * different region, then this use of the experimental edge function can be removed and this stack can be 
  * created in us-east-1 regardless of the target ALB origin region. 
+ * 
+ * @param scope 
+ * @param context 
+ * @returns 
  */
 const createCrossRegionEdgeFunction = (scope:Construct, context:IContext):EdgeFunction => {
-  const { EDGE_REQUEST_ORIGIN_CODE_FILE:outfile } = CloudfrontDistribution
-  const ftn = new experimental.EdgeFunction(scope, 'edge-function-origin', {
+  const { EDGE_ORIGIN_REQUEST_CODE_FILE:outfile } = CloudfrontDistribution
+  const ftn = new experimental.EdgeFunction(scope, 'edge-function-origin-request', {
     runtime: Runtime.NODEJS_18_X,
     handler: 'index.handler',
     code: Code.fromAsset(path.join(__dirname, `../${path.dirname(outfile)}`)),
@@ -75,7 +79,7 @@ const createCrossRegionEdgeFunction = (scope:Construct, context:IContext):EdgeFu
   return ftn;
 }
 
-export const createEdgeFunction = (scope:Construct, context:IContext, callback:(lambda:EdgeLambda) => void) => {
+export const createEdgeFunctionForOriginRequest = (scope:Construct, context:IContext, callback:(lambda:EdgeLambda) => void) => {
   const { REGION } = context;
   let edgeFunction:NodejsFunction|EdgeFunction;
   if(REGION == 'us-east-1') {
