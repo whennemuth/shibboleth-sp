@@ -11,6 +11,10 @@ export type CreateARecordParameters = {
   recordName: string
 }
 
+/**
+ * Add an A record to the hosted zone that targets the provided distribution.
+ * @param parms 
+ */
 export const createARecord = (parms:CreateARecordParameters) => {
   const { distribution, hostedZone, id, recordName, scope } = parms;
   new ARecord(scope, id, {
