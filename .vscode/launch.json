@@ -56,7 +56,7 @@
         "-r", "./node_modules/ts-node/register/transpile-only"
       ],
       "args": [
-        "${workspaceFolder}/lib/lambda/FunctionSpOrigin.test.ts",
+        "${workspaceFolder}/lib/lambda/FunctionSpOrigin.testharness.ts",
       ] 
     },
     {
