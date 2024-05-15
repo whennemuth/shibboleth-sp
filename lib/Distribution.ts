@@ -207,7 +207,9 @@ export class CloudfrontDistribution extends Construct {
       // Associate the test origin with an additional behavior
       distributionProps = Object.assign({
         additionalBehaviors: {
-          '/testing123/': getBehavior(testOrigin, false)
+          // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
+          '/testing123': getBehavior(testOrigin, false),
+          '/testing123/*': getBehavior(testOrigin, false)
         }
       }, distributionProps);
     }
