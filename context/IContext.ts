@@ -6,6 +6,7 @@ export interface IContext {
     EDGE_REQUEST_ORIGIN_FUNCTION_NAME:  string;
     EDGE_RESPONSE_VIEWER_FUNCTION_NAME: string;
     APP_FUNCTION_NAME:                  string;
+    DNS?:                               DNS;
     ORIGIN?:                            Origin;
     APP_LOGIN_HEADER:                   string;
     APP_LOGOUT_HEADER:                  string;
@@ -22,11 +23,14 @@ export type Origin = {
     arn?:                string;
     httpPort?:           number;
     httpsPort:           number;
+    subdomain?:          string; // Includes hostedZone AND subdomain
     appAuthorization:    boolean;
-    hostedZone?:         string;
-    hostedDomain?:       string; // Includes hostedZone AND subdomain
-    certificateARN?:     string;
 };
+
+export type DNS = {
+    hostedZone:         string;
+    certificateARN:     string;
+}
 
 export interface OriginFunctionUrl extends Origin {
     originType: OriginType.FUNCTION_URL;

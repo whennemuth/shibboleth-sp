@@ -9,8 +9,9 @@ import { IContext, OriginAlb, OriginFunctionUrl, OriginType } from '../context/I
 import { createEdgeFunction } from './EdgeFunction';
 import { getAlbOrigin } from './OriginAlb';
 import { getFunctionUrlOrigin } from './OriginFunctionUrl';
-import path = require('path');
 import { createARecord } from './Route53';
+import { ParameterTester } from './util';
+import path = require('path');
 
 /**
  * This construct creates the cloudfront distribution, along with the edge functions and origins that
@@ -75,44 +76,56 @@ export class CloudfrontDistribution extends Construct {
 
     // 5) Create the distribution
     createDistribution();
-  
-    new CfnOutput(stack, 'CloudFrontDistributionURL', {
-      value: `https://${this.cloudFrontDistribution.distributionDomainName}`,
-      description: 'CloudFront Distribution URL',
-    });
-  }
 
-  private isBlankString = (s:string|null|undefined) => s == undefined || s == null || `${s.trim()}` == '';
+    const { subdomain } = ORIGIN || {};
+  
+    if(subdomain) {
+      new CfnOutput(stack, 'CloudFrontDistributionURL', {
+        value: `https://${subdomain}`,
+        description: 'CloudFront Distribution URL',
+      });
+    }
+    else {
+      new CfnOutput(stack, 'CloudFrontDistributionURL', {
+        value: `https://${this.cloudFrontDistribution.distributionDomainName}`,
+        description: 'CloudFront Distribution URL',
+      });
+    }
+  }
 
   /**
    * Make sure there are no invalid combinations or omissions of context.json fields.
    */
   private validateContext = () => {
-    const { context: { ORIGIN }, isBlankString } = this;
-    if( ! ORIGIN) {
-      return;
-    }
-    const { originType, arn, certificateARN, hostedDomain, hostedZone } = ORIGIN;
+    const { context: { ORIGIN, DNS } } = this;
+    const { isBlank, isNotBlank, anyBlank, someBlankSomeNot} = ParameterTester;
+    const { certificateARN, hostedZone } = DNS || {};
+    const { originType, arn, subdomain } = ORIGIN || {};
+
+    const err = (msg:string) => { throw new Error(msg); }
 
     // An alb must be configured with dnsName and arn specified
     if(originType == OriginType.ALB) {
       const { dnsName } = (ORIGIN as OriginAlb);
       const msg = 'An alb origin was configured in context.json';
-      if(isBlankString(dnsName)) throw new Error(`${msg} without its dnsName value`);
-      if(isBlankString(arn)) throw new Error(`${msg} without its arn value`)
+      if(isBlank(dnsName)) err(`${msg} without its dnsName value`);
+      if(isBlank(arn)) err(`${msg} without its arn value`)
     }
 
-    // Validate dns/ssl items.
-    const errorMsg = 'hostedZone, hostedDomain, and certifidateARN are mutually inclusive'
-    const throwError = () => { throw new Error(errorMsg); }
-    if( ! isBlankString(certificateARN) && (isBlankString(hostedDomain) || isBlankString(hostedZone))) throwError();
-    if( ! isBlankString(hostedDomain) && (isBlankString(certificateARN) || isBlankString(hostedZone))) throwError();
-    if( ! isBlankString(hostedZone) && (isBlankString(hostedDomain) || isBlankString(certificateARN))) throwError();
+    // DNS should not be partially configured - Certificate and Route53 must go together.
+    if(someBlankSomeNot(certificateARN, hostedZone)) {
+      throw new Error('hostedZone and certifidateARN are mutually inclusive');
+    }
 
-    // hostedDomain must be a subdomain of, or equal, hostedZone
-    if( ( ! isBlankString(hostedDomain)) && hostedDomain != hostedZone) {
-      if( ! hostedDomain!.endsWith(`.${hostedZone}`)) {
-        throw new Error(`${hostedDomain} is not a subdomain of ${hostedZone}`);
+    // DNS should be configured if a subdomain is specified for the origin.
+    if(isNotBlank(subdomain) && anyBlank(certificateARN, hostedZone)) {
+      throw new Error('An origin subdomain must be supported by DNS.certificateARN and DNS.hostedZone');
+    }
+
+    // subdomain must be a subdomain of, or equal to, hostedZone
+    if(isNotBlank(subdomain) && subdomain != hostedZone) {
+      if( ! subdomain!.endsWith(`.${hostedZone}`)) {
+        throw new Error(`${subdomain} is not a subdomain of ${hostedZone}`);
       }
     }
   }
@@ -128,14 +141,22 @@ export class CloudfrontDistribution extends Construct {
    * not the domain of the cloudfront distribution. This keeps lambda function url origins working correctly,
    */
   private createDistribution = () => {
-    const { stack, context, origin, testOrigin, edgeLambdas, isBlankString } = this;
-    const { TAGS, STACK_ID, ORIGIN } = context;
-    const { hostedDomain, hostedZone, certificateARN } = ORIGIN || {};
+    const { stack, context, origin, testOrigin, edgeLambdas } = this;
+    const { isNotBlank, noneBlank } = ParameterTester;
+    const { TAGS, STACK_ID, DNS, ORIGIN } = context;
+    const { hostedZone, certificateARN } = DNS || {};
+    const { subdomain } = ORIGIN || {};
     const distributionName = `${STACK_ID}-cloudfront-distribution-${TAGS.Landscape}`;
-    const domainNames = [] as string[];
+    const subdomains = [] as string[];
     
-    if( ! isBlankString(hostedDomain)) domainNames.push(hostedDomain!);
-    const customDomain = ():boolean => domainNames.length > 0;
+    if(isNotBlank(subdomain)) {
+      subdomains.push(subdomain!);
+    }
+    else if(noneBlank(hostedZone, certificateARN)) {
+      subdomains.push(`testing123.${hostedZone}`);
+    }
+
+    const customDomain = ():boolean => subdomains.length > 0;
 
     /**
      * Construct a behavior for the provided origin
@@ -178,7 +199,7 @@ export class CloudfrontDistribution extends Construct {
         objectOwnership: ObjectOwnership.OBJECT_WRITER
       }),
       comment: `shib-lambda-${TAGS.Landscape}-distribution`,  
-      domainNames, 
+      domainNames: subdomains, 
       defaultBehavior: getDefaultBehavior(),
     } as DistributionProps
 
@@ -196,7 +217,7 @@ export class CloudfrontDistribution extends Construct {
       const certificate:ICertificate = Certificate.fromCertificateArn(this, `${distributionName}-acm-cert`, certificateARN!);
       distributionProps = Object.assign({
         certificate, 
-        domainNames
+        domainNames: subdomains
       }, distributionProps);
     }
 
@@ -210,7 +231,7 @@ export class CloudfrontDistribution extends Construct {
         distribution:this.cloudFrontDistribution, 
         hostedZone: hostedZone!, 
         id: `${distributionName}-ARecord`,
-        recordName: hostedDomain!
+        recordName: subdomains[0]
       });
     }
   }

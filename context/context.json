@@ -12,11 +12,13 @@
     "dnsName": "wp-wp-alb-devl-922534903.us-east-2.elb.amazonaws.com",
     "httpPort": 80,
     "httpsPort": 443,
-    "hostedZone": "webteam.bu.edu",
-    "hostedDomain": "wp.devl.webteam.bu.edu",
-    "certificateARN": "arn:aws:acm:us-east-1:037860335094:certificate/54d49c16-5fd2-4b07-af90-65c830cf7c04",
+    "subdomain": "wp1.warhen.work",
     "appAuthorization": true
-  },  
+  }, 
+  "DNS": {
+    "hostedZone": "warhen.work",
+    "certificateARN": "arn:aws:acm:us-east-1:037860335094:certificate/47aadc38-fe33-4519-932a-10c6ababaccc"
+  } ,
   "APP_LOGIN_HEADER": "SHIB-HANDLER",
   "APP_LOGOUT_HEADER": "SHIB-IDP-LOGOUT",
   "CLOUDFRONT_CHALLENGE_HEADER": "cloudfront-challenge",

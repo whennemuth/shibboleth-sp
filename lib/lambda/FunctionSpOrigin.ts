@@ -3,6 +3,7 @@ import { SamlTools, SamlToolsParms, SendAssertResult } from './lib/Saml';
 import { JwtTools } from './lib/Jwt';
 import { IContext, Shibboleth } from '../../context/IContext';
 import * as contextJSON from '../../context/context.json';
+import { ParameterTester } from '../util';
 
 const jwtTools = new JwtTools();
 const context = contextJSON as IContext;
@@ -61,9 +62,24 @@ export const handler =  async (event:any) => {
 
   await checkCache(cachedKeys);
 
-  const originRequest = event.Records[0].cf.request;
-  const cloudfrontDomain = event.Records[0].cf.config.distributionDomainName;
-    
+  // Destructure most variables
+  const { isBlank, noneBlank } = ParameterTester;
+  const { DNS, ORIGIN } = context;
+  const { certificateARN, hostedZone } = DNS || {};
+  const { subdomain } = ORIGIN || {};
+  const { request:originRequest, config } = event.Records[0].cf;
+
+  // Set the cloudfront domain value
+  let cloudfrontDomain = config.distributionDomainName;
+  if(noneBlank(certificateARN, hostedZone, subdomain)) {
+    cloudfrontDomain = subdomain;
+  }
+  else if(noneBlank(certificateARN, hostedZone)) {
+    cloudfrontDomain = `testing123.${hostedZone}`;
+  }
+  
+  // Set appAuth. True means that the target app "decides" if authentication is needed (default).
+  // False means an assumption that all requests must be authenticated and that is enforced here.
   let appAuth = true;
   const customHdr = originRequest?.origin?.custom?.customHeaders?.app_authorization;
   if(customHdr && 'true' == customHdr[0].value) {
@@ -93,6 +109,10 @@ export const handler =  async (event:any) => {
     const getAppLogoutUrl = ():string => `${relayDomain}${AUTH_PATHS.LOGOUT}`;
 
     const addHeader = (response:any, keyname:string, value:string) => {
+      if(isBlank(value)) {
+        console.log(`ERROR: attempt to set header ${keyname} with "${value}"`);
+        return;
+      }
       response.headers[keyname] = [{ key: keyname, value }];
     }
 
@@ -191,6 +211,7 @@ export const handler =  async (event:any) => {
       default:
         const afterAuth = decodeURIComponent(qsparms ? qsparms.get('after_auth') || '' : '');
         const validToken = jwtTools.hasValidToken(originRequest);
+
         if (validToken) {
           // Tokens are valid, so consider the user authenticated and pass through to the origin.
           console.log('Request has valid JWT');
