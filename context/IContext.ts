@@ -9,6 +9,7 @@ export interface IContext {
     ORIGIN?:                            Origin;
     APP_LOGIN_HEADER:                   string;
     APP_LOGOUT_HEADER:                  string;
+    CLOUDFRONT_CHALLENGE_HEADER:        string;
     SHIBBOLETH:                         Shibboleth;
     TAGS:                               Tags;
 }
@@ -25,7 +26,6 @@ export type Origin = {
     hostedZone?:         string;
     hostedDomain?:       string; // Includes hostedZone AND subdomain
     certificateARN?:     string;
-    cloudfrontChallenge: CloudfrontChallenge;
 };
 
 export interface OriginFunctionUrl extends Origin {
@@ -37,11 +37,6 @@ export interface OriginAlb extends Origin {
     dnsName:    string;
 };
 
-export interface CloudfrontChallenge {
-    headerName: string,
-    headerValue: string
-}
-
 export interface Shibboleth {
     entityId:   string;
     idpCert:    string;
@@ -51,12 +46,13 @@ export interface Shibboleth {
 }
 
 export interface Secret {
-    _secretArn:              string;
-    _refreshInterval:        string;
-    samlPrivateKeySecretFld: string;
-    samlCertSecretFld:       string;
-    jwtPrivateKeySecretFld:  string;
-    jwtPublicKeySecretFld:   string;
+    _secretArn:                   string;
+    _refreshInterval:             string;
+    samlPrivateKeySecretFld:      string;
+    samlCertSecretFld:            string;
+    jwtPrivateKeySecretFld:       string;
+    jwtPublicKeySecretFld:        string;
+    cloudfrontChallengeSecretFld: string
 }
 
 export interface Tags {

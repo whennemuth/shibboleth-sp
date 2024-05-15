@@ -7,7 +7,7 @@ import * as contextJSON from '../../context/context.json';
 const jwtTools = new JwtTools();
 const context = contextJSON as IContext;
 const debug = process.env?.DEBUG == 'true';
-const { APP_LOGIN_HEADER, APP_LOGOUT_HEADER, SHIBBOLETH } = context;
+const { APP_LOGIN_HEADER, APP_LOGOUT_HEADER, CLOUDFRONT_CHALLENGE_HEADER, SHIBBOLETH } = context;
 const { entityId, entryPoint, logoutUrl, idpCert } = SHIBBOLETH as Shibboleth;
 // If running locally - not in lambda@edge function - shibboleth configs can come from the environment.
 const { ENTITY_ID, ENTRY_POINT, LOGOUT_URL, IDP_CERT } = process.env;
@@ -21,7 +21,7 @@ let samlTools = new SamlTools({
 
 const cachedKeys:CachedKeys = { 
   _timestamp: 0, /* One hour */ 
-  samlCert: '', samlPrivateKey: '', jwtPrivateKey: '', jwtPublicKey: '',
+  samlCert: '', samlPrivateKey: '', jwtPrivateKey: '', jwtPublicKey: '', cloudfrontChallenge: ''
 };
 
 // Perform cold-start loading of global cache by fetching saml cert and private key.
@@ -209,6 +209,8 @@ export const handler =  async (event:any) => {
           addHeader(response, 'eduPersonEntitlement', eduPersonEntitlement.join(';'));
           addHeader(response, APP_LOGIN_HEADER, encodeURIComponent(getAppLoginUrl()));
           addHeader(response, APP_LOGOUT_HEADER, encodeURIComponent(getAppLogoutUrl()));
+          // Alternatively, CLOUDFRONT_CHALLENGE_HEADER can be set on HttpOrigin construct directly using the HttpOriginProps.customHeaders attribute
+          addHeader(response, CLOUDFRONT_CHALLENGE_HEADER, encodeURIComponent(cachedKeys.cloudfrontChallenge));
 
           console.log(`Valid JWT found - passing through to origin: ${JSON.stringify(response, null, 2)}`);
         }
@@ -234,6 +236,9 @@ export const handler =  async (event:any) => {
           addHeader(response, 'login', LOGIN);
           addHeader(response, APP_LOGIN_HEADER, encodeURIComponent(getAppLoginUrl()));
           addHeader(response, APP_LOGOUT_HEADER, encodeURIComponent(getAppLogoutUrl()));
+          // Alternatively, CLOUDFRONT_CHALLENGE_HEADER can be set on HttpOrigin construct directly using the HttpOriginProps.customHeaders attribute
+          addHeader(response, CLOUDFRONT_CHALLENGE_HEADER, encodeURIComponent(cachedKeys.cloudfrontChallenge)); 
+
           console.log('App will determine need for auth - passing through to origin');
         } 
         else {

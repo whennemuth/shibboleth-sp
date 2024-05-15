@@ -6,7 +6,7 @@ import { OriginProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
  * Create an origin to add to the cloudfront distribution that targets a pre-existing application load balancer.
  */
 export const getAlbOrigin = (origin:OriginAlb) => {
-  const { appAuthorization=true, dnsName, httpsPort, cloudfrontChallenge: { headerName, headerValue } } = origin;
+  const { appAuthorization=true, dnsName, httpsPort } = origin;
   // const alb = ApplicationLoadBalancer.fromApplicationLoadBalancerAttributes(
   //   this.cloudFrontDistribution,
   //   `origin-alb`,
@@ -28,7 +28,7 @@ export const getAlbOrigin = (origin:OriginAlb) => {
     originPath: '/',
     customHeaders: {
       APP_AUTHORIZATION: `${appAuthorization}`,
-      [headerName]: headerValue
+      // CLOUDFRONT_CHALLENGE_HEADER could be set here.
     }       
   } as HttpOriginProps);
 }

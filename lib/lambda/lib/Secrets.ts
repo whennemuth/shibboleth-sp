@@ -3,7 +3,7 @@ import * as context from '../../../context/context.json';
 import { Secret } from '../../../context/IContext';
 import { Keys } from './Keys';
 
-const { _secretArn, _refreshInterval, samlCertSecretFld, samlPrivateKeySecretFld, jwtPublicKeySecretFld, jwtPrivateKeySecretFld } = context.SHIBBOLETH.secret as Secret;
+const { _secretArn, _refreshInterval, samlCertSecretFld, samlPrivateKeySecretFld, jwtPublicKeySecretFld, jwtPrivateKeySecretFld, cloudfrontChallengeSecretFld } = context.SHIBBOLETH.secret as Secret;
 const refreshInterval = parseInt(_refreshInterval)
 
 export type CachedKeys = {
@@ -12,6 +12,7 @@ export type CachedKeys = {
   samlPrivateKey: string;
   jwtPrivateKey: string;
   jwtPublicKey: string;
+  cloudfrontChallenge: string;
 }
 
 export type SecretsConfig = {
@@ -20,7 +21,8 @@ export type SecretsConfig = {
   samlCertSecretFld:string;
   samlPrivateKeySecretFld:string;
   jwtPublicKeySecretFld:string;
-  jwtPrivateKeySecretFld:string
+  jwtPrivateKeySecretFld:string;
+  cloudfrontChallengeSecretFld:string;
 }
 
 /**
@@ -66,6 +68,7 @@ const loadFromScratch = (cache:CachedKeys) => {
   cache.jwtPublicKey = jwtKeys.publicKeyPEM;
   cache.samlPrivateKey = process.env.SAML_PK || '';
   cache.samlCert = process.env.SAML_CERT || '';
+  cache.cloudfrontChallenge = process.env.CLOUDFRONT_CHALLENGE || '';
   cache._timestamp = Date.now();
 }
 
@@ -76,13 +79,13 @@ const loadFromScratch = (cache:CachedKeys) => {
 export async function checkCache(cache:CachedKeys, config?:SecretsConfig): Promise<void> {
   // If a cache configuration is not supplied, get it from the context instead.
   const _config = config || {
-    refreshInterval, _secretArn, jwtPrivateKeySecretFld, jwtPublicKeySecretFld, samlCertSecretFld, samlPrivateKeySecretFld
+    refreshInterval, _secretArn, jwtPrivateKeySecretFld, jwtPublicKeySecretFld, samlCertSecretFld, samlPrivateKeySecretFld, cloudfrontChallengeSecretFld
   };
   
   const now = Date.now();
   if (requiresRefreshFromSecretsManager(cache, refreshInterval, now)) {
     try {
-      const { _secretArn, samlCertSecretFld, samlPrivateKeySecretFld, jwtPrivateKeySecretFld, jwtPublicKeySecretFld } = _config;
+      const { _secretArn, samlCertSecretFld, samlPrivateKeySecretFld, jwtPrivateKeySecretFld, jwtPublicKeySecretFld, cloudfrontChallengeSecretFld } = _config;
       const command = new GetSecretValueCommand({ SecretId: _secretArn });
       const region = _secretArn.split(':')[3];
       const secretsClient = new SecretsManagerClient({ region });
@@ -95,6 +98,7 @@ export async function checkCache(cache:CachedKeys, config?:SecretsConfig): Promi
       cache.samlPrivateKey = fieldset[samlPrivateKeySecretFld];
       cache.jwtPublicKey = fieldset[jwtPublicKeySecretFld];
       cache.jwtPrivateKey = fieldset[jwtPrivateKeySecretFld];
+      cache.cloudfrontChallenge = fieldset[cloudfrontChallengeSecretFld];
       cache._timestamp = now;
       console.log(`Retrieved shib cert from secrets manager in ${Date.now() - now} milliseconds`);
     } catch (e) {
