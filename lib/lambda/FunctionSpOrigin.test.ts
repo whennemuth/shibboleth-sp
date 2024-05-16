@@ -9,7 +9,7 @@ import { IContext } from '../../context/IContext';
 import * as contextJSON from '../../context/context.json';
 
 const context = contextJSON as IContext;
-const distributionDomainName = 'd129tjsl6pgy8.cloudfront.net';
+const distributionDomainName = 'wp1.warhen.work';
 const uri = '/path/to/app';
 const loginUrl = 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO?SAMLRequest=some_base64_value';
 const logoutUrl = 'https://shib-test.bu.edu/Shibboleth.sso/Logout';

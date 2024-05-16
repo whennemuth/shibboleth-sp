@@ -18,8 +18,9 @@ if(process.env?.unmocked === 'true') {
         samlCert: '',
         samlPrivateKey: '',
         jwtPrivateKey: '',
-        jwtPublicKey: ''
-      };
+        jwtPublicKey: '',
+        cloudfrontChallenge: ''
+      } as CachedKeys;
       await checkCache(cache);
       expect(cache.samlCert.length).toBeGreaterThan(1);
       console.log(JSON.stringify(cache, null, 2));
@@ -41,7 +42,7 @@ else {
       'jpkfld': keys.privateKeyPEM,
       'jpufld': keys.publicKeyPEM,
       'spkfld': keys.certificatePEM,
-      'sctfld': keys.privateKeyPEM
+      'sctfld': keys.privateKeyPEM,
     }, null, 2)
   } as GetSecretValueCommandOutput)
 
@@ -54,7 +55,8 @@ else {
       samlCertSecretFld: 'sctfld',
       samlPrivateKeySecretFld: 'spkfld',
       jwtPublicKeySecretFld: 'jpufld',
-      jwtPrivateKeySecretFld: 'jpkfld'
+      jwtPrivateKeySecretFld: 'jpkfld',
+      cloudfrontChallengeSecretFld: 'secret'
     }
   }
 
@@ -65,7 +67,8 @@ else {
       samlCert: 'dummy_value',
       samlPrivateKey: 'dummy_value',
       jwtPrivateKey: 'dummy_value',
-      jwtPublicKey: 'dummy_value'
+      jwtPublicKey: 'dummy_value',
+      cloudfrontChallenge: 'dummy_value'
     };
   }
 
