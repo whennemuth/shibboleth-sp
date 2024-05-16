@@ -53,7 +53,7 @@ A more detailed view of the interaction between the end-user, origin request lam
    Alternatively, for preventing stack rollback on error and skipping prompts:
 
    ```
-   cdk deploy --no-rollback --require-approval never
+   npm run deploy
    ```
 
 **Teardown:**
@@ -80,10 +80,10 @@ A more detailed view of the interaction between the end-user, origin request lam
 
 **Rebuild:**
 
-- To cleanup, destroy, and build in one non-prompted command:
+- To cleanup, destroy the stack, and rebuild it in one non-prompted command:
 
   ```
-  export AWS_PROFILE=bu && npm run cleanup && cdk destroy -f && cdk deploy --no-rollback --require-approval never
+  export AWS_PROFILE=bu && npm run cleanup && npm run redeploy
   ```
 
 ### Testing
