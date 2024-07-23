@@ -1,0 +1,7 @@
+*.d.ts
+node_modules
+dist
+
+# CDK asset staging directory
+bundled-entrypoint.js
+.env

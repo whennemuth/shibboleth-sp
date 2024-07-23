@@ -1,0 +1,37 @@
+# -----------------------------------------------------------
+#                      STAGE 1
+# -----------------------------------------------------------
+FROM node:slim AS baseline
+
+ARG TYPESCRIPT_ENTRYPOINT_FILE
+ENV NODE_ENV development
+USER root
+
+RUN npm install esbuild -g
+
+COPY ./src ./src/
+COPY ./package.json ./src/
+
+# Install dependencies
+WORKDIR /src
+RUN npm install --save-dev
+
+# Transpile ts source to single javascript file
+RUN esbuild ./${TYPESCRIPT_ENTRYPOINT_FILE} --bundle --platform=node --outfile=entrypoint.js
+
+# -----------------------------------------------------------
+#                      STAGE 2
+# -----------------------------------------------------------
+FROM node:slim
+
+ENV NODE_ENV development
+USER root
+WORKDIR /src
+
+RUN apt update -y && apt upgrade -y && apt install -y curl;
+
+# Copy in ONLY the tree-shaken single javascript artifact - keeps image "slim"
+COPY --from=baseline /src/entrypoint.js /src/entrypoint.js
+
+ENTRYPOINT [ "node" ]
+CMD [ "entrypoint.js" ]

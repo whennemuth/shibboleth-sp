@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+
+  # Shibboleth sp in one container targeting "app" in separate container over network bridge
+  sp:
+    image: ${DOCKER_REGISTRY}/bu-shibboleth-sp-debug 
+    command: [ "dist/esm/EntrypointSp.js" ]
+    container_name: sp 
+    build:
+      context: ./
+    environment:
+      TZ: UTC
+      EXPRESS_PORT: ${EXPRESS_PORT:-5000}
+      ENTITY_ID: ${ENTITY_ID}
+      IDP_CERT: ${IDP_CERT}
+      ENTRY_POINT: ${ENTRY_POINT}
+      LOGOUT_URL: ${LOGOUT_URL}
+      SAML_CERT: ${SAML_CERT}
+      SAML_PK: ${SAML_PK}
+      DOCKER_PROFILE: integrated
+      DOCKER_APP_HOST: app
+      APP_AUTHORIZATION: ${APP_AUTHORIZATION}
+      APP_LOGIN_HEADER: ${APP_LOGIN_HEADER}
+      APP_LOGOUT_HEADER: ${APP_LOGOUT_HEADER}
+      # DEBUG: 'true'
+    ports:
+      - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
+      - '9229:9229'
+    networks:
+      wp-bridge:
+
+  app:
+    image: ${DOCKER_REGISTRY}/bu-shibboleth-app-debug 
+    command: [ "dist/esm/EntrypointApp.js" ]
+    container_name: app 
+    build:
+      context: ./
+    depends_on:
+      - sp
+    expose:
+      - 443
+    environment:
+      TYPESCRIPT_ENTRYPOINT_FILE: EntrypointApp.ts
+      EXPRESS_PORT: 443
+      APP_AUTHORIZATION: ${APP_AUTHORIZATION}
+      APP_LOGIN_HEADER: ${APP_LOGIN_HEADER}
+      APP_LOGOUT_HEADER: ${APP_LOGOUT_HEADER}
+      # DEBUG: 'true'
+    ports:
+      - '9228:9229'
+    networks:
+      wp-bridge:
+    
+ 
+networks:
+  wp-bridge:
+    driver: bridge
+
