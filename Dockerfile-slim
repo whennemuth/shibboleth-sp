@@ -4,7 +4,7 @@
 FROM node:slim AS baseline
 
 ARG TYPESCRIPT_ENTRYPOINT_FILE
-ENV NODE_ENV development
+ENV NODE_ENV=development
 USER root
 
 RUN npm install esbuild -g
@@ -24,7 +24,7 @@ RUN esbuild ./${TYPESCRIPT_ENTRYPOINT_FILE} --bundle --platform=node --outfile=e
 # -----------------------------------------------------------
 FROM node:slim
 
-ENV NODE_ENV development
+ENV NODE_ENV=development
 USER root
 WORKDIR /src
 

@@ -97,9 +97,12 @@ export const buildRequest = (req:Request): IRequest => {
   const loginUrl = `${relayDomain}${AUTH_PATHS.LOGIN}?relay_state=${relayState}`;
   const logoutUrl = `${relayDomain}${AUTH_PATHS.LOGOUT}`;
   const { appLoginHeader, appLogoutHeader } = config;
+  const { APP_APPEND_AUTH_HEADERS='true' } = process.env;
 
-  addHeader(request, appLoginHeader, encodeURIComponent(loginUrl));
-  addHeader(request, appLogoutHeader, encodeURIComponent(logoutUrl));
+  if(APP_APPEND_AUTH_HEADERS === 'true') {
+    addHeader(request, appLoginHeader, encodeURIComponent(loginUrl));
+    addHeader(request, appLogoutHeader, encodeURIComponent(logoutUrl));
+  }
 
   return request;
 }

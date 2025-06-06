@@ -1,7 +1,9 @@
 *.d.ts
 node_modules
 dist
+*.tgz
 
 # CDK asset staging directory
 bundled-entrypoint.js
 .env
+config-output.yml

@@ -46,7 +46,7 @@ export interface KeyValuePair {
 export type IHeaders = {
   empty: boolean;
   get: (key: string) => string|null;
-  join: (joiner: string) => string;
+  join: (joiner: string, except?:string[]) => string;
   isTruthy: (key: string) => boolean;
 }
 
@@ -58,16 +58,25 @@ export type IHeaders = {
 export const Headers = (request:IRequest|IResponse):IHeaders => {
   const { headers } = request;
   if(headers) {
-    const get = (key:string):string|null => {
+    const get = (key:string|null|undefined):string|null => {
+      if(!key) {
+        return null;
+      }
       if(headers[key.toLowerCase()]) {
         return headers[key.toLowerCase()][0].value;
       }
       return null;
     }
-    const join = (joiner:string):string => {
+    const join = (joiner:string, except:string[]=[]):string => {
       return Object.keys(headers).map(key => {
         return `${key}: ${get(key)}`
-      }).join(joiner);
+      })
+      .filter(key => {
+        return except.find(e => {
+          return e.toLowerCase() == key.toLowerCase();
+        }) == undefined;
+      })
+      .join(joiner);
     }
     const isTruthy = (key:string):boolean => {
       return `${get(key)}`.toLowerCase() == 'true';

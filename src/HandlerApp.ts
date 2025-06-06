@@ -130,6 +130,10 @@ const getOkResponse = (originRequest:IRequest, config:IConfig):IResponse => {
     if( ! user) {
       const { appLoginHeader } = config;
       const loginUrl = decodeURIComponent(headers.get(appLoginHeader) ?? MISSING_APP_LOGIN_HEADER);
+      const onclick = loginUrl ?
+        `document.location.href = '${loginUrl}';` :
+        `alert('No login URL configured!');`;
+
       return {
         status: '200',
         statusDescription: 'Ok',
@@ -143,7 +147,7 @@ const getOkResponse = (originRequest:IRequest, config:IConfig):IResponse => {
             <body>
               <p style="padding:30px; font-weight:bold; font-size:24px;">
                 Welcome, whoever you are. You do not seem to be authenticated, but this is a public portion of the website. 
-                <button class="btn btn-primary btn-lg" type="button" onclick="document.location.href = '${loginUrl}';">Login</button> 
+                <button class="btn btn-primary btn-lg" type="button" onclick="${onclick}">Login</button> 
               </p>
               <p style="padding:30px; font-weight:bold; font-size:24px;">
                 user-details and jwt cookie header missing, but here are the remaining headers:
@@ -212,8 +216,10 @@ const userToHtml = (user:any, config:IConfig, headers:IHeaders) => {
         <p style="padding:30px; font-weight:bold; font-size:24px;">
           Welcome, Warren <button id="btnSignin" class="btn btn-primary btn-lg" type="button" onclick="document.location.href = '${logoutUrl}';">Logout</button> 
         </p>
-        <p style="padding-left:30px; font-size:16px;">Here is what shibboleth "said" about you:</p>
+        <p style="padding-left:30px; font-size:16px; font-weight:bold;">Here is what shibboleth "said" about you:</p>
         <pre style='padding-left:30px;font-size:14px;'>${preContent}</pre>
+        <p style="padding-left:30px; font-size:16px; font-weight:bold;">Here are the remaining headers:</p>
+        <pre style='padding-left:30px;font-size:14px;'>${headers.join('<br>', [ 'user-details' ])}</pre>
       </body>
     </html>
   `;

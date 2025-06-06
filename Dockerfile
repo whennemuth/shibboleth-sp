@@ -3,7 +3,7 @@
 # -----------------------------------------------------------
 FROM node:slim AS baseline
 
-ENV NODE_ENV development
+ENV NODE_ENV=development
 USER root
 
 COPY ./src ./sp/src/

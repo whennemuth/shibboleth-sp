@@ -34,7 +34,7 @@ Here shibboleth-sp is packaged up, and then we proceed from the perspective of a
    }' > tsconfig.json
    
    # Install the shibboleth-sp package
-   npm install shibboleth-sp-0.1.0.tgz
+   npm install shibboleth-sp-1.0.0.tgz
    ```
 
 3. Create some code to import and use the package
