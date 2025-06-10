@@ -33,6 +33,11 @@
      IDP_CERT="<ds:X509Certificate> value from https://shib-test.bu.edu/idp/shibboleth goes here"
      ENTRY_POINT="https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO"
      LOGOUT_URL="https://shib-test.bu.edu/idp/logout.jsp"
+     APP_APPEND_AUTH_HEADERS="false"
+     APP_AUTHORIZATION="true"
+     APP_LOGIN_HEADER="SHIB-HANDLER"
+     APP_LOGOUT_HEADER="SHIB_IDP_LOGOUT"
+     APP_PORT="8080"
      SAML_CERT="-----BEGIN CERTIFICATE-----
      MIIEGzCCAoOgAwIBAgIJAPhkIj1CZ3z3MA0GCSqGSIb3DQEBCwUAMCcxJTAjBgNV
      BAMTHGlwLTEwLTU3LTIzNy0yMS5lYzIuaW50ZXJuYWwwHhcNMTYwODA4MDQyNzE4
@@ -44,30 +49,30 @@
      ...
      -----END PRIVATE KEY-----"
      ```
-
+  
      Replace `SAML_CERT` and `SAML_PK` with the full values.
      *NOTE: The JWT keys do not need to be set here as they are arbitrary for running locally and will be auto-generated.*
      If you want to simply run the dockerized app, skip the remaining steps below and simply run:
-
+  
      ```
      docker compose -f docker-compose-slim.yml up -d
      ```
-
+  
      This will produce two "slim" docker files with only the tree-shaken js index files.
      Visit `https://localhost:5000.` in your browser.
      If instead you want step debugging, proceed as follows instead...
-
+  
   3. **Build the project:**
      This is necessary to produce a dist folder that can be mapped to the corresponding containerized directory structure.
-
+  
      ```
      npm run build
      ```
-
+  
   4. **Run the docker-compose app:**
-
+  
      The following command should build 2 images and run 2 containers *(container A, and container B as mentioned above).*
-
+  
      ```
      docker compose up -d
      ```
@@ -76,22 +81,22 @@
      This vscode launch configuration should to attach to the container A *(the shibboleth-sp container)*. 
      This launch config maps the internal container directory `/sp` to the local `${workspace}` directory.
      As as long as these two directories mirror each other, including the dist folders, source mapping should work.
-
+  
   6. **Browser:**
      Navigate to `https://localhost:5000.`
      You should see content output by container B, proxied by container A
-
+  
   7. **Step debug:**
      While "attach-to-docker-sp-process" is running, you should be able to place a breakpoint into any code in scope (ie: src/HandlerSp.ts), refresh the browser, and observe excecution pause on the breakpoint.
-
+  
   **SIMPLE LAUNCH CONFIGS:**
   You can also step debug by running either of two vscode launch configurations:
-
+  
   - **sp-express-sp**
     Runs in isolation and mocks a dummy app, since non is running or reachable.
     Once running, it is reachable at `https://localhost:5000`
   - **sp-express-app**
     Runs in isolation and "pretends" requests have passed through a shibboleth-sp proxy.
     Once running, it is reachable at `https://localhost`
-
+  
   Neither of these involve any docker usage.

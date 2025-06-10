@@ -44,6 +44,9 @@ The `./src/Config.ts` module defines how shibboleth-sp is configured:
 - **appLoginHeader**: string *(env: APP_LOGIN_HEADER)*, The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for login.
 - **appLogoutHeader**: string *(env: APP_LOGOUT_HEADER)*, The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for logout.
 - **appAuthorization**: boolean *(env: APP_AUTHORIZATION, default: "true")*, True indicates the standard mode as described in the authentication flow section above. False indicates the basic mode as described in the authentication flow section above.
+- **appPort**: string|number *(env: APP_PORT, default: "8080")*, Applies to running locally with docker compose.
+    This is the port that the "app" container will expose and the "sp" container will proxy to using axios requests.
+    Use "443" if you want the "app" container to expect https traffic and use ssl.
 -  **samlParms**:
     - **entityId:** string *(env: ENTITY_ID)*, The entity ID of your app know to shibboleth. Example: `'https://*.myapp.bu.edu/shibboleth'`
     - **entryPoint:** string *(env: ENTRY_POINT)*, The entry point, aka IDP address of shibboleth: Example: `'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO'` 

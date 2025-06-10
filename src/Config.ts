@@ -10,6 +10,7 @@ export type IConfig = {
   appLoginHeader:string,
   appLogoutHeader:string,
   appAuthorization:boolean,
+  appPort:number,
   samlParms:SamlToolsParms
   jwtPrivateKeyPEM?:string,
   jwtPublicKeyPEM?:string,
@@ -26,6 +27,7 @@ export const getConfigFromEnvironment = () => {
     APP_LOGIN_HEADER:appLoginHeader, 
     APP_LOGOUT_HEADER:appLogoutHeader,
     APP_AUTHORIZATION='false',
+    APP_PORT=8080,
     ENTITY_ID:entityId, 
     ENTRY_POINT:entryPoint, 
     LOGOUT_URL:logoutUrl, 
@@ -39,6 +41,7 @@ export const getConfigFromEnvironment = () => {
   return {
     domain, appLoginHeader, appLogoutHeader, jwtPrivateKeyPEM, jwtPublicKeyPEM,
     appAuthorization: `${APP_AUTHORIZATION}`.toLocaleLowerCase() == 'false' ? false : true,
+    appPort: APP_PORT ? parseInt(`${APP_PORT}`) : 8080,
     samlParms: {
       entityId, entryPoint, logoutUrl, idpCert, cert:SAML_CERT, key:SAML_PK
     }

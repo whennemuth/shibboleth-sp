@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
-import { createServer } from 'https';
-import { IConfig, getConfigFromEnvironment } from './Config';
+import { Application, Request, Response } from 'express';
+import { createServer as createHttpServer, Server as HttpServer } from 'http';
+import { createServer as createHttpsServer, Server as HttpsServer } from 'https';
+import { getConfigFromEnvironment, IConfig } from './Config';
 import { handler } from './HandlerApp';
 import { AUTH_PATHS } from './HandlerSp';
-import { IRequest, IResponse, addHeader } from './Http';
+import { addHeader, IRequest, IResponse } from './Http';
 import { Keys } from './Keys';
 import { transformExpressRequest } from './Utils';
 
@@ -21,7 +22,7 @@ export const startExpressServer = () => {
 
   const express = require('express');
 
-  const app = express();
+  const app = express() as Application;
 
   // for parsing application/x-www-form-urlencoded
   app.use(express.urlencoded({ extended: true }));
@@ -34,8 +35,17 @@ export const startExpressServer = () => {
 
   app.use(express.static('public'));
 
-  const { privateKeyPEM, certificatePEM } = new Keys();
-  const server = createServer({key: privateKeyPEM, cert: certificatePEM }, app);
+  const { appPort } = config;
+  let server: HttpServer | HttpsServer;
+  if(appPort == 443) {
+    console.log(`Preparing to run on port 443, using HTTPS.`);
+    const { privateKeyPEM, certificatePEM } = new Keys();
+    server = createHttpsServer({key: privateKeyPEM, cert: certificatePEM }, app);
+  }
+  else {
+    console.log(`Preparing to run on port ${appPort}, using HTTP.`);
+    server = createHttpServer(app);
+  }
     
   // Handle all http requests
   app.all('/*', async (req:Request, res:Response) => {
@@ -80,8 +90,11 @@ export const startExpressServer = () => {
     `);
     }
   });
+  
+  console.log('STARTUP CONFIG:');
+  console.log(JSON.stringify(config, null, 2));
 
-  server.listen(443, '0.0.0.0', () => console.log(`⚡️[bootup]: Server is running at port: ${443}`));
+  server.listen(appPort, '0.0.0.0', () => console.log(`⚡️[bootup]: Server is running at port: ${appPort}`));
 }
 
 /**

@@ -23,6 +23,7 @@ services:
       APP_AUTHORIZATION: ${APP_AUTHORIZATION}
       APP_LOGIN_HEADER: ${APP_LOGIN_HEADER}
       APP_LOGOUT_HEADER: ${APP_LOGOUT_HEADER}
+      APP_PORT: ${APP_PORT:-8080}
       # DEBUG: 'true'
     ports:
       - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
@@ -39,14 +40,15 @@ services:
     depends_on:
       - sp
     expose:
-      - 443
+      - ${APP_PORT:-8080}
     environment:
       TYPESCRIPT_ENTRYPOINT_FILE: EntrypointApp.ts
-      EXPRESS_PORT: 443
+      EXPRESS_PORT: ${APP_PORT:-8080}
       APP_APPEND_AUTH_HEADERS: ${APP_APPEND_AUTH_HEADERS:-true}
       APP_AUTHORIZATION: ${APP_AUTHORIZATION}
       APP_LOGIN_HEADER: ${APP_LOGIN_HEADER}
       APP_LOGOUT_HEADER: ${APP_LOGOUT_HEADER}
+      APP_PORT: ${APP_PORT:-8080}
       # DEBUG: 'true'
     ports:
       - '9228:9229'

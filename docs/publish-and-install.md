@@ -124,6 +124,8 @@ Here shibboleth-sp is packaged up, and then we proceed from the perspective of a
    APP_AUTHORIZATION="true"
    APP_LOGIN_HEADER="SHIB-HANDLER"
    APP_LOGOUT_HEADER="SHIB_IDP_LOGOUT"
+   APP_APPEND_AUTH_HEADERS="false"
+   APP_PORT="443"
    SAML_CERT="-----BEGIN CERTIFICATE-----
    Lines of content...
    -----END CERTIFICATE-----"
