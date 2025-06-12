@@ -1,94 +1,34 @@
-import axios, { AxiosInstance, AxiosResponse, CreateAxiosDefaults } from 'axios';
+import { AxiosInstance, AxiosResponse } from 'axios';
 import { Request, Response } from 'express';
-import { Agent as HttpsAgent, Server, createServer } from 'https';
-import { Agent as HttpAgent} from 'http';
-import { IConfig, getConfigFromEnvironment } from './Config';
+import { Server, createServer } from 'https';
+import { getAxiosInstance } from './Axios';
+import { IConfig, getConfigFromEnvironment, getDockerConfigFromEnvironment } from './Config';
 import { handler } from './HandlerSp';
+import { Host } from './Host';
 import { Headers, IRequest, IResponse } from './Http';
 import { JwtTools } from './Jwt';
 import { Keys } from './Keys';
 import { transformExpressRequest } from './Utils';
 
-
-
 /**
  * Start an express server running to take all requests for authentication to the service provider endpoint.
  */
 export const startExpressServer = (handler:any) => {
-  // Get the sp port from the environment
-  const port:number = parseInt(process.env.EXPRESS_PORT ?? '5000');
+  // Get config docker compose configurations from the environment in case we are running that way.
+  const { spPort, isDockerCompose } = getDockerConfigFromEnvironment();
 
-  // Get the app host value (will be supplied if running in docker and app is in another container)
-  const appHost:string|undefined = process.env.DOCKER_APP_HOST;
-
-  // Get configuration values from the environment as a consolidated object
+  // Get main configuration values from the environment as a consolidated object
   const config:IConfig = getConfigFromEnvironment();
 
-  // Set domain (and port)
-  let { domain, jwtPrivateKeyPEM, jwtPublicKeyPEM, appPort } = config;
-  domain = `${domain}:${port}`;
-  config.domain = domain;
+  // Get host utilities to help with host and port management
+  const host = Host(config);
 
-  // Set jwt keys if they were missing from the environment
-  if( ! jwtPrivateKeyPEM && ! jwtPublicKeyPEM) {
-    const { privateKeyPEM, publicKeyPEM } = new Keys();
-    config.jwtPrivateKeyPEM = privateKeyPEM;
-    config.jwtPublicKeyPEM = publicKeyPEM;
-  }
+  // Set domain (using ".host" should include the port if it is not the default port 80 or 443)
+  config.domain = host.getPublicHostOrigin().host;
 
-  let axiosInstance:AxiosInstance, proxyUrl:URL = new URL('http://localhost');
-
-  if(domain) {
-    // The protocol will default to http, which assumes the target app is not running the ssl termination itself,
-    // but perhaps in a reverse proxy like nginx, or cloudfront if running in AWS.
-    proxyUrl = new URL(`http://${domain}`);
-
-    // Construct the URL to the app container
-    if(appPort == 443) {
-      proxyUrl.protocol = 'https';
-    }
-    else if(appPort != 80) {
-      proxyUrl.port = appPort.toString();
-    }
-    const { href:baseURL } = proxyUrl;
-
-    const config = { baseURL } as CreateAxiosDefaults;
-
-    if(appPort == 443) {
-      console.log(`Using https agent for axios requests to ${proxyUrl}`);
-      config.httpsAgent = new HttpsAgent({ rejectUnauthorized: false });
-    }
-    else {
-      console.log(`Using http agent for axios requests to ${proxyUrl}`);
-      config.httpAgent = new HttpAgent({ port: appPort });
-    }
-
-    // Create the axios instance with the base URL
-    axiosInstance = axios.create(config);
-
-    if(appPort == 443) {
-      axiosInstance.defaults.httpsAgent = new HttpsAgent({ rejectUnauthorized: false });
-    }
-    else {
-      axiosInstance.defaults.httpAgent = new HttpAgent({ port: appPort });
-    }
-    axiosInstance.defaults.maxRedirects = 0;    
-    axiosInstance.interceptors.response.use(
-      response => response,
-      error => {
-        if(error.response && [301, 302].includes(error.response.status)) {
-          console.log('Axios got a redirect response');
-          // console.log(`${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`);
-          return Promise.resolve(error.response);
-        }
-        if(error.response && error.response.status == 403) {
-          return Promise.resolve(error.response);
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
+  // set an axios instance for "talking" to the target app container
+  const axiosInstance:AxiosInstance = getAxiosInstance(host);
+  
   const express = require('express');
 
   const app = express();
@@ -102,8 +42,7 @@ export const startExpressServer = (handler:any) => {
   // for parsing application/octet-stream
   app.use(express.raw());
 
-  app.use(express.static('public'));
-
+  // The sp server should always be running over https, so create it with ssl keys.
   const { privateKeyPEM, certificatePEM } = new Keys();
   const server = createServer({key: privateKeyPEM, cert: certificatePEM }, app) as Server;
     
@@ -113,14 +52,6 @@ export const startExpressServer = (handler:any) => {
       if(/favicon/i.test(req.url)) {
         res.status(200).send('favicon');
         return;
-      }
-      
-      if( ! appHost) {
-        /**
-         * We must be running as a vscode launch configuration (not docker), so countermand the APP_AUTHORIZATION
-         * variable because there is no app container to proxy to for delegating the authentication decisions to.
-         */
-        config.appAuthorization = false;
       }
 
       await screenRequestForAuthentication(req, res, axiosInstance, (error:any) => {
@@ -133,10 +64,10 @@ export const startExpressServer = (handler:any) => {
     }    
   });
   
-  console.log('STARTUP VARS:');
-  console.log(JSON.stringify({ port, proxyUrl:proxyUrl.href, config }, null, 2));
+  console.log('CONFIG VARS:');
+  console.log(JSON.stringify(config, null, 2));
 
-  server.listen(port, '0.0.0.0', () => console.log(`⚡️[bootup]: Server is running at port: ${port}`));
+  server.listen(spPort, '0.0.0.0', () => console.log(`⚡️[bootup]: Server is running at port: ${spPort}`));
 
 
   /**
@@ -158,12 +89,12 @@ export const startExpressServer = (handler:any) => {
 
     const spRedirect = ():boolean => `${authResponse.status}`.startsWith('30')
     const authenticated = Headers(authResponse).isTruthy('authenticated');
-    const { appPort } = config;
 
-    if(appHost && ! spRedirect()) {
+    if(isDockerCompose() && ! spRedirect()) {
         // Proxy to the app container across the docker bridge network
       try {
-        await proxypass({ appHost, appPort, authResponse, axios:axiosInstance, req, res });
+        const appUrl = host.getInternalDockerAppHostUrl(authRequest).href;
+        await proxypass({ appUrl, authResponse, axios:axiosInstance, req, res });
       }
       catch(e) {
         onProxyError(e);
@@ -210,7 +141,7 @@ export const startExpressServer = (handler:any) => {
     let msg2 = 'Had you been running under docker, a separate container on the docker bridge would have served up this page';
     let msg3 = 'This is what was found in the JWT:'
     let msg4 = `<pre>${json}</pre>`
-    if(error && appHost) {
+    if(error && isDockerCompose()) {
       const errJson = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
       msg2 = `There was an error attempting to proxy to the docker app container: <pre>${errJson}</pre>`
     }
@@ -227,8 +158,7 @@ export const startExpressServer = (handler:any) => {
 
 
 export type ProxyPassParms = {
-  appHost:string|undefined,
-  appPort:number,
+  appUrl:string,
   req:Request,
   res:Response,
   authResponse:IResponse|IRequest,
@@ -236,11 +166,13 @@ export type ProxyPassParms = {
 }
 
 /**
- * Proxy to the app container across the docker bridge network.
+ * Proxy to the app container across the docker bridge network. 
+ * This is equivalent to a cloudfront@edge function returning the request it was initially provided, 
+ * where that request would be allowed to continue on to the origin.
  * @param parms 
  */
 export const proxypass = async (parms:ProxyPassParms) => {
-  const { appHost, appPort, authResponse, axios, req, req: { url, method, headers, body }, res } = parms;
+  const { appUrl, authResponse, axios, req, req: { url, method, headers, body }, res } = parms;
 
   // Put all original headers
   const headersOut = {} as any;
@@ -258,28 +190,19 @@ export const proxypass = async (parms:ProxyPassParms) => {
 
   let response:AxiosResponse<any, any> | undefined;
 
-  // Construct the URL to the app container
-  const appUrl = new URL(url, `http://${appHost}`);
-  if(appPort == 443) {
-    appUrl.protocol = 'https';
-  }
-  else if(appPort != 80) {
-    appUrl.port = appPort.toString();
-  }
-
   // Proxy to the app container
   switch(method.toLowerCase()) {
     case 'get':
-      console.log(`Proxying ${url} get request to ${appUrl.href}, headers: ${JSON.stringify(headersOut, null, 2)}`);
-      response = await axios.get(appUrl.href, { headers:headersOut });
+      console.log(`Proxying ${url} get request to ${appUrl}, headers: ${JSON.stringify(headersOut, null, 2)}`);
+      response = await axios.get(appUrl, { headers:headersOut });
       break;
     case 'post':
       const formdata = body;
-      console.log(`Proxying ${url} post request to ${appUrl.href}: ${JSON.stringify({
+      console.log(`Proxying ${url} post request to ${appUrl}: ${JSON.stringify({
         headers: headersOut, 
         formdata
       }, null, 2)}`);
-      response = await axios.post(appUrl.href, formdata, { headers:headersOut });          
+      response = await axios.post(appUrl, formdata, { headers:headersOut });          
       break;
   }
 

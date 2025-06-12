@@ -27,7 +27,6 @@
   2. **Create .env file**:
 
      ```
-     EXPRESS_PORT=5000
      DOCKER_REGISTRY="037860335094.dkr.ecr.us-east-2.amazonaws.com"
      ENTITY_ID="https://*.kualitest.research.bu.edu/shibboleth"
      IDP_CERT="<ds:X509Certificate> value from https://shib-test.bu.edu/idp/shibboleth goes here"
@@ -37,7 +36,8 @@
      APP_AUTHORIZATION="true"
      APP_LOGIN_HEADER="SHIB-HANDLER"
      APP_LOGOUT_HEADER="SHIB_IDP_LOGOUT"
-     APP_PORT="8080"
+     DOCKER_APP_PORT="80"
+     DOCKER_SP_PORT=5000
      SAML_CERT="-----BEGIN CERTIFICATE-----
      MIIEGzCCAoOgAwIBAgIJAPhkIj1CZ3z3MA0GCSqGSIb3DQEBCwUAMCcxJTAjBgNV
      BAMTHGlwLTEwLTU3LTIzNy0yMS5lYzIuaW50ZXJuYWwwHhcNMTYwODA4MDQyNzE4

@@ -17,7 +17,7 @@ services:
       args:
         - TYPESCRIPT_ENTRYPOINT_FILE=EntrypointSp.ts
     ports:
-      - '${EXPRESS_PORT:-5000}:${EXPRESS_PORT:-5000}'
+      - '${DOCKER_SP_PORT:-5000}:${DOCKER_SP_PORT:-5000}'
 
   app:
     extends:

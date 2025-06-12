@@ -4,11 +4,30 @@ import { DOMParser } from '@xmldom/xmldom';
 import { IRequest } from './Http';
 
 export type SamlToolsParms = {
+  /**
+   * The entity ID of your app know to shibboleth. Example: 'https://*.myapp.bu.edu/shibboleth'
+   */
   entityId:string, 
+  /**
+   * The entry point, aka IDP address of shibboleth: Example: 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO'
+   */
   entryPoint:string, 
+  /**
+   * The logout url used by the IDP. Example: 'https://shib.bu.edu/idp/logout.jsp'
+   */
   logoutUrl:string, 
+  /**
+   * The public cert of the IDP. Navigate to the IDP entry point in a browser and acquire this cert 
+   * from the '<ds:X509Certificate>' element.
+   */
   idpCert:string,
+  /**
+   * The SAML certificate item of your service provider metadata.
+   */
   cert?:string,
+  /**
+   * The private key item of your service provider metadata.
+   */
   key?:string
 };
    

@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { IRequest, RequestBody, RequestHeaders } from './Http';
 import { Request } from 'express';
+import { IRequest, RequestBody, RequestHeaders } from './Http';
 
 const isBlank = (s:string|null|undefined):boolean => {
   return s === undefined || s === null || `${s}`.trim() == '';
@@ -79,7 +78,7 @@ export const transformExpressRequest = (req:Request): IRequest => {
 
   return {
     body, headers: headersOut, method, querystring, uri, headerActivity: { added:{}, modified:{}, removed:{}}        
-  };
+  } as IRequest;
 }
 
 export const instanceOf = <T>(value: any, fieldName: string): value is T => fieldName in value;

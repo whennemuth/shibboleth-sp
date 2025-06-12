@@ -115,7 +115,6 @@ Here shibboleth-sp is packaged up, and then we proceed from the perspective of a
 
    ```
    DOCKER_REGISTRY="037860335094.dkr.ecr.us-east-2.amazonaws.com"
-   EXPRESS_PORT=5000
    TZ="utc"
    ENTITY_ID="https://*.kualitest.research.bu.edu/shibboleth"
    IDP_CERT="MIIDPDCCAiSgAwIBAgIVAJ6... more content..."
@@ -125,7 +124,8 @@ Here shibboleth-sp is packaged up, and then we proceed from the perspective of a
    APP_LOGIN_HEADER="SHIB-HANDLER"
    APP_LOGOUT_HEADER="SHIB_IDP_LOGOUT"
    APP_APPEND_AUTH_HEADERS="false"
-   APP_PORT="443"
+   DOCKER_APP_PORT="443"
+   DOCKER_SP_PORT=5000
    SAML_CERT="-----BEGIN CERTIFICATE-----
    Lines of content...
    -----END CERTIFICATE-----"

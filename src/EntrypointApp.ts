@@ -1,12 +1,13 @@
 import { Application, Request, Response } from 'express';
 import { createServer as createHttpServer, Server as HttpServer } from 'http';
 import { createServer as createHttpsServer, Server as HttpsServer } from 'https';
-import { getConfigFromEnvironment, IConfig } from './Config';
+import { getConfigFromEnvironment, getDockerConfigFromEnvironment, IConfig } from './Config';
 import { handler } from './HandlerApp';
 import { AUTH_PATHS } from './HandlerSp';
 import { addHeader, IRequest, IResponse } from './Http';
 import { Keys } from './Keys';
 import { transformExpressRequest } from './Utils';
+import { Host } from './Host';
 
 
 // Get configuration values from the environment as a consolidated object
@@ -35,7 +36,8 @@ export const startExpressServer = () => {
 
   app.use(express.static('public'));
 
-  const { appPort } = config;
+  const { appPort } = getDockerConfigFromEnvironment();
+  
   let server: HttpServer | HttpsServer;
   if(appPort == 443) {
     console.log(`Preparing to run on port 443, using HTTPS.`);
@@ -51,7 +53,7 @@ export const startExpressServer = () => {
   app.all('/*', async (req:Request, res:Response) => {
     try {
       console.log(`Incoming request: ${JSON.stringify(req, Object.getOwnPropertyNames(req), 2)}`);     
-      const request = buildRequest(req);
+      const request:IRequest = buildRequest(req);
       console.log(`Generated request: ${JSON.stringify(request, null, 2)}`);
 
       const response = await handler(request, config) as IResponse;
@@ -103,18 +105,27 @@ export const startExpressServer = () => {
  * @returns An object implementing the simpler IRequest interface.
  */
 export const buildRequest = (req:Request): IRequest => {
-  const { url, protocol } = req;
-  const request = transformExpressRequest(req);
-  const relayDomain = `${protocol}://${req.header('host')}`;
-  const relayState = encodeURIComponent(`${relayDomain}${url}`);
-  const loginUrl = `${relayDomain}${AUTH_PATHS.LOGIN}?relay_state=${relayState}`;
-  const logoutUrl = `${relayDomain}${AUTH_PATHS.LOGOUT}`;
-  const { appLoginHeader, appLogoutHeader } = config;
+  const host = Host(config);
+  const request:IRequest = transformExpressRequest(req);
   const { APP_APPEND_AUTH_HEADERS='true' } = process.env;
 
+  // Add the login and logout headers to the request if configured to do so.
   if(APP_APPEND_AUTH_HEADERS === 'true') {
-    addHeader(request, appLoginHeader, encodeURIComponent(loginUrl));
-    addHeader(request, appLogoutHeader, encodeURIComponent(logoutUrl));
+    const relayUrl = host.getPublicHostUrl(request);
+
+    // Construct the login url for relay state
+    const loginUrl = new URL(relayUrl.origin);
+    loginUrl.pathname = AUTH_PATHS.LOGIN;
+    loginUrl.searchParams.set('relay_state', encodeURIComponent(relayUrl.href));
+
+    // Construct the logout url.
+    const logoutUrl = new URL(relayUrl.origin);
+    logoutUrl.pathname = AUTH_PATHS.LOGOUT;
+
+    const { appLoginHeader, appLogoutHeader } = config;
+    
+    addHeader(request, appLoginHeader, encodeURIComponent(loginUrl.href));
+    addHeader(request, appLogoutHeader, encodeURIComponent(logoutUrl.href));
   }
 
   return request;

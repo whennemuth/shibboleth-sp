@@ -107,3 +107,17 @@ export const addHeader = (obj:IRequest|IResponse, keyname:string, value:string) 
     }
   }
 }
+
+export const getHost = (request:IRequest):string|null => {
+  if(!request || !request.headers) {
+    return null;;
+  }
+  try {
+    const headers = Headers(request);
+    return headers.get('host');
+  }
+  catch(e:any) {
+    console.log(`ERROR: Unable to determine host from request: ${JSON.stringify(request, null, 2)}`);
+  }
+  return null;
+}

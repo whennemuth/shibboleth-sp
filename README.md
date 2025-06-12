@@ -38,15 +38,12 @@ The shibboleth-sp library is used anywhere it can intercept http traffic:
 
 ### Configuration:
 
-The `./src/Config.ts` module defines how shibboleth-sp is configured:
+The `./src/Config.ts` module defines how shibboleth-sp is configured. Defaults for these can be overridden with entries in the `./.env` file:
 
 - **domain**: string *(env: DOMAIN, default: "localhost")*, The domain for requests to your app that shibboleth-sp is "listening" to.
 - **appLoginHeader**: string *(env: APP_LOGIN_HEADER)*, The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for login.
 - **appLogoutHeader**: string *(env: APP_LOGOUT_HEADER)*, The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for logout.
 - **appAuthorization**: boolean *(env: APP_AUTHORIZATION, default: "true")*, True indicates the standard mode as described in the authentication flow section above. False indicates the basic mode as described in the authentication flow section above.
-- **appPort**: string|number *(env: APP_PORT, default: "8080")*, Applies to running locally with docker compose.
-    This is the port that the "app" container will expose and the "sp" container will proxy to using axios requests.
-    Use "443" if you want the "app" container to expect https traffic and use ssl.
 -  **samlParms**:
     - **entityId:** string *(env: ENTITY_ID)*, The entity ID of your app know to shibboleth. Example: `'https://*.myapp.bu.edu/shibboleth'`
     - **entryPoint:** string *(env: ENTRY_POINT)*, The entry point, aka IDP address of shibboleth: Example: `'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO'` 
@@ -56,7 +53,13 @@ The `./src/Config.ts` module defines how shibboleth-sp is configured:
     - **key:** string, *(env: SAML_PK)*, The private key item of your service provider metadata.
 - **jwtPrivateKeyPEM**: string *(env: JWT_PRIVATE_KEY_PEM, default: read on...)*, A private key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario.
 - **jwtPublicKeyPEM**: string *(env: JWT_PUBLIC_KEY_PEM, default: read on...)*, A public key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario.
-- **customHeaders**: *KeyValuePair[]*, A way to inject those headers that one wishes sp-shibboleth to append to incoming reqests. Currently not available as environment variable(s). 
+- **customHeaders**: *KeyValuePair[]*, A way to inject those headers that one wishes sp-shibboleth to append to incoming reqests. Currently not available as environment variable(s).
+
+There are also a few configurations defined in `./src/Config.ts` that apply only to running the project locally in docker compose:
+
+- **spPort:** string|number *(env: DOCKER_SP_PORT, default 5000)*, This is the port that the "sp" container will bind to the host machine. This is the port that all requests from the browser must use as they all need to pass through the "sp" container.
+- **appPort:** string|number *(env: DOCKER_APP_PORT, default 80)*, This is the port that the "app" container will expose and the "sp" container will proxy to using [Axios](https://axios-http.com/) requests. Use "443" if you want the "app" container to expect https traffic and use ssl.
+- **appHostname:** string, This is the name of the hostname of the "app" container as published on the Docker network. This will be the same name as the service element in the docker-compose.yml file and is "hard-coded" as an environment variable both the sp and app service definitions - thus, no need to have a corresponding entry in `./.env` file for it.
 
 ### Publishing and Installing:
 

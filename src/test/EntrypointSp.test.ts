@@ -37,7 +37,7 @@ describe('entrypoint.js', () => {
 
   const port = '5000';
   const app_host = 'app';
-  process.env.EXPRESS_PORT = port;
+  process.env.DOCKER_SP_PORT = port;
   process.env.DOCKER_APP_HOST = app_host;
   process.env.UNIT_TESTING = 'true';
 
