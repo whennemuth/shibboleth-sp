@@ -30,17 +30,24 @@ export const handler = async (originRequest:IRequest, config:IConfig):Promise<IR
 
   if(appAuth) {
     const authenticated = headers.isTruthy('authenticated');
+    console.log(`App Authorization is set to ${appAuth}, authenticated: ${authenticated}`);
 
     if(pathParts.includes('private') && !authenticated) {
+      console.log(`Request is for a private endpoint, but not authenticated. Redirecting to login.`);
       return getLoginResponse(originRequest, config);
     }
 
     if(pathParts.includes('unauthorized')) {
       if(authenticated) {
+        console.log(`Request is for an unauthorized endpoint, but authenticated. Returning 403.`);
         return getUnauthorizedResponse(originRequest);
       }
+      console.log(`Request is for an unauthorized endpoint, but not authenticated. Redirecting to login.`);
       return getLoginResponse(originRequest, config);
     }
+  }
+  else {
+    console.log(`App Authorization is set to ${appAuth}, skipping authentication and authorization checks.`);
   }
 
   return getOkResponse(originRequest, config);
