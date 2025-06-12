@@ -58,6 +58,18 @@
     },
     {
       "type": "node",
+      "request": "attach",
+      "name": "attach-to-docker-app-process",
+      "port": 9228,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/sp",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
       "request": "launch",
       "name": "Jest Entrypoint",
       "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
