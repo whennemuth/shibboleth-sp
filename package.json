@@ -17,9 +17,11 @@
     "test": "jest --silent",
     "docker-clean": "sh -c \"docker rmi $(docker images --filter dangling=true -q) 2> /dev/null || true\"",
     "deploy": "docker compose down && npm run docker-clean && docker compose up --build -d --remove-orphans",
-    "deploy-slim": "docker compose down && npm run docker-clean && docker compose -f docker-compose-slim.yml up --build -d --remove-orphans",
+    "deploy-slim": "npm run down-slim && npm run docker-clean && docker compose -f docker-compose-slim.yml up --build -d --remove-orphans --force-recreate",
     "up": "docker compose up -d",
-    "down": "(docker compose down) 2> /dev/null || true"
+    "down": "docker compose down || true",
+    "up-slim": "docker compose -f docker-compose-slim.yml up -d --force-recreate",
+    "down-slim": "docker compose -f docker-compose-slim.yml down || true"
   },
   "module": "dist/esm/index.js",
   "main": "dist/cjs/index.js",
