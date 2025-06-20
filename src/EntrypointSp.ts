@@ -1,4 +1,4 @@
-import { AxiosInstance, AxiosResponse } from 'axios';
+import { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Request, Response } from 'express';
 import { Server, createServer } from 'https';
 import { getAxiosInstance } from './Axios';
@@ -12,10 +12,11 @@ import { safeStringify } from './Utils';
 
 /**
  * Start an express server running to take all requests for authentication to the service provider endpoint.
+ * TODO: Move this and related express and proxying files to a subfolder called "express" or "test_harness"
  */
 export const startExpressServer = (handler:any) => {
   // Get config docker compose configurations from the environment in case we are running that way.
-  const { spPort, isDockerCompose } = getDockerConfigFromEnvironment();
+  const { spPort, spProxyExtras, isDockerCompose } = getDockerConfigFromEnvironment();
 
   // Get main configuration values from the environment as a consolidated object
   const config:IConfig = getConfigFromEnvironment();
@@ -45,9 +46,10 @@ export const startExpressServer = (handler:any) => {
   // The sp server should always be running over https, so create it with ssl keys.
   const { privateKeyPEM, certificatePEM } = new Keys();
   const server = createServer({key: privateKeyPEM, cert: certificatePEM }, app) as Server;
-    
+
   // Handle all http requests
   app.all('/*', async (req:Request, res:Response) => {
+
     try {
       if(/favicon/i.test(req.url)) {
         res.status(200).send('favicon');
@@ -67,8 +69,8 @@ export const startExpressServer = (handler:any) => {
   console.log('CONFIG VARS:');
   console.log(JSON.stringify(config, null, 2));
 
-  server.listen(spPort, '0.0.0.0', () => console.log(`⚡️[bootup]: Server is running at port: ${spPort}`));
-
+  // Listen for https requests
+  server.listen(spPort, '0.0.0.0', () => console.log(`⚡️[bootup]: HTTPS Server is running at port: ${spPort}`));
 
   /**
    * This function performs the "sp" (shibboleth service provider) actions where the incoming request is either
@@ -94,7 +96,7 @@ export const startExpressServer = (handler:any) => {
         // Proxy to the app container across the docker bridge network
       try {
         const appUrl = host.getInternalDockerAppHostURL(authRequest).href;
-        await proxypass({ appUrl, authResponse, axios:axiosInstance, req, res });
+        await proxypass({ appUrl, authResponse, axios:axiosInstance, host, spProxyExtras, req, res });
       }
       catch(e) {
         onProxyError(e);
@@ -173,7 +175,9 @@ export type ProxyPassParms = {
   req:Request,
   res:Response,
   authResponse:IResponse|IRequest,
-  axios:AxiosInstance
+  axios:AxiosInstance,
+  spProxyExtras:boolean,
+  host:IHost, 
 }
 
 /**
@@ -183,7 +187,7 @@ export type ProxyPassParms = {
  * @param parms 
  */
 export const proxypass = async (parms:ProxyPassParms) => {
-  const { appUrl, authResponse, axios, req, req: { url, method, headers, body }, res } = parms;
+  const { appUrl, authResponse, axios, req, req: { url, method, headers, body }, res, host, spProxyExtras } = parms;
 
   // Put all original headers
   const headersOut = {} as any;
@@ -193,27 +197,41 @@ export const proxypass = async (parms:ProxyPassParms) => {
 
   // Put all additional headers returned in the authentication response.
   const { headers:lrHeaders } = authResponse;
+  const publicURL = host.getPublicHostURL(getHref(req));
   if(headers) {
     for(const hdr in lrHeaders) {
-      headersOut[lrHeaders[hdr][0].key] = lrHeaders[hdr][0].value;
+      const key = lrHeaders[hdr][0].key;
+      const value = lrHeaders[hdr][0].value;
+      headersOut[key] = value;
     }
+  }
+  
+  // TODO: Change publicURL to "proxyURL" to reflect that it is the URL of the proxying service.
+  if(spProxyExtras) {
+    // Add headers that reflect the proxying of the request to the target app.
+    headersOut['host'] = publicURL.host;
+    headersOut['x-forwarded-host'] = publicURL.host;
+    headersOut['x-forwarded-proto'] = 'https';
+    headersOut['x-forwarded-port'] = publicURL.port;
   }
 
   let response:AxiosResponse<any, any> | undefined;
 
+  const reqConfig:AxiosRequestConfig = { headers: headersOut };
+
   // Proxy to the app container
   switch(method.toLowerCase()) {
     case 'get':
-      console.log(`Proxying ${url} get request to ${appUrl}, headers: ${JSON.stringify(headersOut, null, 2)}`);
-      response = await axios.get(appUrl, { headers:headersOut });
+      console.log(`Proxying ${url} get request to ${appUrl}, config: ${JSON.stringify(reqConfig, null, 2)}`);
+      response = await axios.get(appUrl, reqConfig);
       break;
     case 'post':
       const formdata = body;
       console.log(`Proxying ${url} post request to ${appUrl}: ${JSON.stringify({
-        headers: headersOut, 
+        config: reqConfig, 
         formdata
       }, null, 2)}`);
-      response = await axios.post(appUrl, formdata, { headers:headersOut });          
+      response = await axios.post(appUrl, formdata, reqConfig);          
       break;
   }
 

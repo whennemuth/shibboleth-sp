@@ -94,6 +94,15 @@ export type IDockerConfig = {
    */
   spPort:number,
   /**
+   * This boolean indicates whether to add or modify various headers to the request that is being proxied
+   * from the "sp" container to the "app" container. This is useful if the app container is running  
+   * something (like WordPress) for which it would otherwise seem that requests are NOT self-originated, 
+   * and would potentially issue a redirect in an effort to "normalize" or correct what it sees as a port 
+   * mismatch from the host header, or produces markup that does not reflect the protocol, port or hostname
+   * that the browser is using to access the app via the sp proxy.
+   */
+  spProxyExtras:boolean,
+  /**
    * This is the port that the "app" container will expose and the "sp" container will proxy to using axios requests.
    * Use "443" if you want the "app" container to expect https traffic and use ssl.
    */
@@ -115,6 +124,7 @@ export type IDockerConfig = {
 export const getDockerConfigFromEnvironment = ():IDockerConfig => {
   let {
     DOCKER_SP_PORT:spPort,
+    DOCKER_SP_PROXY_EXTRAS:spProxyExtras,
     DOCKER_APP_PORT:appPort,
     DOCKER_APP_HOST:appHostname
   } = process.env;
@@ -126,6 +136,7 @@ export const getDockerConfigFromEnvironment = ():IDockerConfig => {
   if(appPort && !isNaN(parseInt(appPort))) {
     cfg.appPort = parseInt(appPort);
   }
+  cfg.spProxyExtras = `${spProxyExtras}`.toLowerCase() == 'true';
   cfg.isDockerCompose = () => {
     // spPort is a minimum requirement for running in Docker compose. If it is not set, then we are not 
     // running in Docker compose (though may still be running "locally" from a vscode launch configuration).
