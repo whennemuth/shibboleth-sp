@@ -45,40 +45,94 @@ export const debugLog = (msg:string) => {
   }
 }
 
-/**
- * Convert express.Request to IRequest.
- * @param {*} req A complete express request object
- * @returns An object implementing the simpler IRequest interface.
- */
-export const transformExpressRequest = (req:Request): IRequest => {
-  let { url, method, headers:headersIn, body:rawBody } = req;
+export const instanceOf = <T>(value: any, fieldName: string): value is T => fieldName in value;
 
-  // Reform headers
-  const headersOut = {} as RequestHeaders;
-  Object.keys(headersIn).forEach(key => {
-    headersOut[key.toLowerCase()] = [{
-      key, value: req.header(key) as string
-    }]    
-  });
 
-  // Get the uri and querystring
-  const parts = url.split('?');
-  const uri = parts[0];
-  const querystring = parts.length > 1 ? parts[1] : '';
+type ReplacerFunction = (key: string, value: any) => any;
+type ReplacerArray = (string | number)[];
+type Replacer = ReplacerFunction | ReplacerArray | null;
+type Space = string | number | null;
 
-  // Reform the body
-  let body = { data: {}} as RequestBody;
-  rawBody = rawBody || {};
-  if(Object.keys(rawBody).length > 0) {
-    const bodyString = Object.keys(rawBody).map(key => `${key}=${encodeURIComponent(rawBody[key])}`).join('&');
-    body = {
-      data: Buffer.from(bodyString, 'utf8').toString('base64')
-    }
+export const safeStringify = (
+  obj: any,
+  replacer?: Replacer,
+  space?: Space
+): string | undefined => {
+  // Handle array replacer by converting to a function
+  let replaceFn: ReplacerFunction | null = null;
+  if (typeof replacer === 'function') {
+    replaceFn = replacer;
+  } else if (Array.isArray(replacer)) {
+    const allowList = new Set(replacer.map(String));
+    replaceFn = (key, value) => (key === '' || allowList.has(key) ? value : undefined);
   }
 
-  return {
-    body, headers: headersOut, method, querystring, uri, headerActivity: { added:{}, modified:{}, removed:{}}        
-  } as IRequest;
-}
+  // Track visited objects to detect circular references
+  const visited = new WeakSet();
 
-export const instanceOf = <T>(value: any, fieldName: string): value is T => fieldName in value;
+  const _serialize = (value: any, key: string = ''): string | undefined => {
+    // Apply replacer function if provided
+    const replacedValue = replaceFn ? replaceFn(key, value) : value;
+
+    // Handle undefined and functions
+    if (replacedValue === undefined || typeof replacedValue === 'function') {
+      return undefined;
+    }
+
+    // Handle null and non-objects
+    if (replacedValue === null || typeof replacedValue !== 'object') {
+      return JSON.stringify(replacedValue);
+    }
+
+    // Handle built-in objects
+    if (replacedValue instanceof Date) {
+      return JSON.stringify(replacedValue);
+    }
+    if (replacedValue instanceof RegExp) {
+      return JSON.stringify(replacedValue.toString());
+    }
+    if (replacedValue instanceof Map || replacedValue instanceof Set) {
+      return '{}';
+    }
+
+    // Handle circular references
+    if (visited.has(replacedValue)) {
+      return '"[Circular]"';
+    }
+    visited.add(replacedValue);
+
+    try {
+      // Process arrays
+      if (Array.isArray(replacedValue)) {
+        const items = replacedValue.map((item, i) => {
+          const serialized = _serialize(item, String(i));
+          return serialized === undefined ? 'null' : serialized;
+        });
+        return `[${items.join(',')}]`;
+      }
+
+      // Process objects
+      const entries: string[] = [];
+      for (const [k, v] of Object.entries(replacedValue)) {
+        const serialized = _serialize(v, k);
+        if (serialized !== undefined) {
+          entries.push(`${JSON.stringify(k)}:${serialized}`);
+        }
+      }
+      return `{${entries.join(',')}}`;
+    } finally {
+      // Clean up visited set for recursive structures
+      visited.delete(replacedValue);
+    }
+  };
+
+  try {
+    const result = _serialize(obj);
+    if (space) {
+      return JSON.stringify(JSON.parse(result || 'null'), null, space);
+    }
+    return result;
+  } catch {
+    return '{}';
+  }
+}

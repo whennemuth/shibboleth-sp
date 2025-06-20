@@ -1,6 +1,6 @@
 import { btoa } from 'buffer';
-import { transformExpressRequest } from '../Utils';
 import { Request } from 'express';
+import { transformExpressRequest } from '../Http';
 
 class ResponseMock {
   _status:number;

@@ -4,10 +4,9 @@ import { createServer as createHttpsServer, Server as HttpsServer } from 'https'
 import { getConfigFromEnvironment, getDockerConfigFromEnvironment, IConfig } from './Config';
 import { handler } from './HandlerApp';
 import { AUTH_PATHS } from './HandlerSp';
-import { addHeader, IRequest, IResponse } from './Http';
-import { Keys } from './Keys';
-import { transformExpressRequest } from './Utils';
 import { Host } from './Host';
+import { addHeader, IRequest, IResponse, transformExpressRequest } from './Http';
+import { Keys } from './Keys';
 
 
 // Get configuration values from the environment as a consolidated object

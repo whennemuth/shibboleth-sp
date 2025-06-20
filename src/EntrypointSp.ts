@@ -4,11 +4,11 @@ import { Server, createServer } from 'https';
 import { getAxiosInstance } from './Axios';
 import { IConfig, getConfigFromEnvironment, getDockerConfigFromEnvironment } from './Config';
 import { handler } from './HandlerSp';
-import { Host } from './Host';
-import { Headers, IRequest, IResponse } from './Http';
+import { Host, IHost } from './Host';
+import { Headers, IRequest, IResponse, getHref, transformExpressRequest } from './Http';
 import { JwtTools } from './Jwt';
 import { Keys } from './Keys';
-import { transformExpressRequest } from './Utils';
+import { safeStringify } from './Utils';
 
 /**
  * Start an express server running to take all requests for authentication to the service provider endpoint.
@@ -142,8 +142,19 @@ export const startExpressServer = (handler:any) => {
     let msg3 = 'This is what was found in the JWT:'
     let msg4 = `<pre>${json}</pre>`
     if(error && isDockerCompose()) {
-      const errJson = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
-      msg2 = `There was an error attempting to proxy to the docker app container: <pre>${errJson}</pre>`
+      const errJson = safeStringify(error, null, 2);
+      let resHtml = '';
+      if(error.response && error.response.data) {
+        const { data } = error.response;
+        if(typeof data === 'string' && data.includes('<html>')) {
+          resHtml = `<b>response data: </b><br><div>${data}</div><br>`;
+        }
+        else if(typeof data === 'object') {
+          resHtml = `<b>response data: </b><br><pre>${safeStringify(data, null, 2)}</pre><br>`;
+        }
+      }
+      msg2 = `There was an error attempting to proxy to the docker app container: <br>${resHtml}` +
+        `<b>error: </b><pre>${errJson}</pre>`;
     }
     console.log(`REPLYING WITH: ${json}`)  
     res.send(`
