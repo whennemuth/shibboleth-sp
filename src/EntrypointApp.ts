@@ -110,7 +110,7 @@ export const buildRequest = (req:Request): IRequest => {
 
   // Add the login and logout headers to the request if configured to do so.
   if(APP_APPEND_AUTH_HEADERS === 'true') {
-    const relayUrl = host.getPublicHostUrl(request);
+    const relayUrl = host.getPublicHostURL(request);
 
     // Construct the login url for relay state
     const loginUrl = new URL(relayUrl.origin);

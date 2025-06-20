@@ -2,14 +2,14 @@ import axios, { AxiosInstance, CreateAxiosDefaults } from "axios";
 import { Agent as HttpAgent } from 'http';
 import { Agent as HttpsAgent } from 'https';
 import { getDockerConfigFromEnvironment } from "./Config";
-import { HostType } from "./Host";
+import { IHost } from "./Host";
 
 /**
  * Get an axios instance configured to make requests to the app container from within the sp 
  * container across the docker network bridge.
  */  
-export const getAxiosInstance = (host:HostType):AxiosInstance => {
-  const baseURL = host.getInternalDockerAppHostUrl().href;
+export const getAxiosInstance = (host:IHost):AxiosInstance => {
+  const baseURL = host.getInternalDockerAppHostURL().href;
   const axiosConfig = { baseURL } as CreateAxiosDefaults;
   const { appPort } = getDockerConfigFromEnvironment();
 

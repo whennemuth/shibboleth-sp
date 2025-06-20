@@ -93,7 +93,7 @@ export const startExpressServer = (handler:any) => {
     if(isDockerCompose() && ! spRedirect()) {
         // Proxy to the app container across the docker bridge network
       try {
-        const appUrl = host.getInternalDockerAppHostUrl(authRequest).href;
+        const appUrl = host.getInternalDockerAppHostURL(authRequest).href;
         await proxypass({ appUrl, authResponse, axios:axiosInstance, req, res });
       }
       catch(e) {

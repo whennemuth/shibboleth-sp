@@ -1,17 +1,31 @@
 import { getDockerConfigFromEnvironment, IConfig } from "./Config";
 import { getHost, IRequest } from "./Http";
 
-export type HostType = {
+export type IHost = {
   getPublicHostOrigin: (request?:IRequest) => URL;
-  getPublicHostUrl: (request:IRequest) => URL;
-  getInternalDockerAppHostUrl: (request?: IRequest) => URL;
+  getPublicHostURL: (request:IRequest|string) => URL;
+  getInternalDockerAppHostURL: (request?: IRequest) => URL;
 }
 
-export const Host = (config:IConfig): HostType => {
+/**
+ * This module provides utilites for constructing host URLs that are used by the sp-shibboleth application,
+ * particularly for making adjustments when running under docker compose and working with a network bridge
+ * and bound ports.
+ * 
+ * TODO: Rename this file as Proxy.ts and move the proxypass function here.
+ * @param config 
+ * @returns 
+ */
+export const Host = (config:IConfig): IHost => {
 
   const { domain } = config;
-  const { appHostname, appPort, spPort, isDockerCompose } = getDockerConfigFromEnvironment();
+  const { appHostname, appPort, spPort } = getDockerConfigFromEnvironment();
 
+  /**
+   * @param request 
+   * @returns The origin from a request, which is protocol, host and port.
+   * This will be the "public" origin that the browser will use to access the app container via the sp container.
+   */
   const getPublicHostOrigin = (request?:IRequest):URL => {
     // Just start off with a basic localhost URL
     const url = new URL('http://localhost');
@@ -39,18 +53,32 @@ export const Host = (config:IConfig): HostType => {
   }
 
   /**
-   * The relay state URL is based on the public host URL, but it will include the request URI and query string 
-   * if provided. This is used to redirect the user back to the original request after authentication.
    * @param request 
-   * @returns 
+   * @returns The full url from a request, which is the full URL including protocol, host, port, path, and querystring.
+   * This will be the "public" URL that the browser will use to access the app container via the sp container.
    */
-  const getPublicHostUrl = (request:IRequest):URL => {
-    const url = getPublicHostOrigin(request);
-    if(request.uri) {
-      url.pathname = request.uri;
+  const getPublicHostURL = (request:IRequest|string):URL => {
+    let url:URL = {} as URL;
+    if(typeof request === 'string') {
+      // The request parameter will be the href of the URL.
+      url = new URL(request);
+      const origin = getPublicHostOrigin();
+      url.protocol = origin.protocol;
+      url.hostname = origin.hostname;
+      if(origin.port) {
+        url.port = origin.port;
+      }
     }
-    if(request.querystring) {
-      url.search = request.querystring;
+    else {
+      // The request parameter is an IRequest object, so we need to construct the URL from it.
+      url = getPublicHostOrigin(request);
+      if(request.uri) {
+        url.pathname = request.uri;
+      }
+      if(request.querystring) {
+        url.search = request.querystring;
+      }
+
     }
     return url;
   }
@@ -63,7 +91,7 @@ export const Host = (config:IConfig): HostType => {
    * @param pathname 
    * @returns 
    */
-  const getInternalDockerAppHostUrl = (request?:IRequest):URL => {
+  const getInternalDockerAppHostURL = (request?:IRequest):URL => {
     // Just start off with a basic localhost URL
     const url = new URL('http://localhost');
 
@@ -88,6 +116,7 @@ export const Host = (config:IConfig): HostType => {
     return url;
   }
 
+
   /**
    * We must be running as a vscode launch configuration (not docker), so countermand the APP_AUTHORIZATION
    * variable because there is no app container to proxy to for delegating the authentication decisions to.
@@ -99,7 +128,7 @@ export const Host = (config:IConfig): HostType => {
 
   return {
     getPublicHostOrigin,
-    getPublicHostUrl,
-    getInternalDockerAppHostUrl
+    getPublicHostURL,
+    getInternalDockerAppHostURL,
   };
 }
