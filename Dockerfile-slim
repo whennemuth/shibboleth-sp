@@ -7,16 +7,16 @@ ARG TYPESCRIPT_ENTRYPOINT_FILE
 ENV NODE_ENV=development
 USER root
 
+# Install esbuild globally
 RUN npm install esbuild -g
 
-COPY ./src ./src/
-COPY ./package.json ./src/
-
 # Install dependencies
+COPY ./package.json ./src/
 WORKDIR /src
 RUN npm install --save-dev
 
-# Transpile ts source to single javascript file
+# Copy and transpile ts source to single javascript file
+COPY ./src ./
 RUN esbuild ./${TYPESCRIPT_ENTRYPOINT_FILE} --bundle --platform=node --outfile=entrypoint.js
 
 # -----------------------------------------------------------

@@ -6,16 +6,20 @@ FROM node:slim AS baseline
 ENV NODE_ENV=development
 USER root
 
-COPY ./src ./sp/src/
-COPY ./package.json ./sp/
-COPY ./tsconfig.json ./sp/
 
-# Build the sp request event handler package
-WORKDIR /sp
+# Install esbuild globally
 RUN npm install -g typescript
+
+# Install dependencies
+COPY ./package.json ./sp/
+WORKDIR /sp
 RUN npm install --save-dev
 
-# Transpile typescript code and create source maps
+# Copy in source files and the typescript configuration for their build
+COPY ./src ./src/
+COPY ./tsconfig.json ./
+
+# Transpile all source, including the sp request event handler package, and create source maps
 # RUN node_modules/typescript/bin/tsc -p tsconfig.json
 RUN npm run build:tsc
 
