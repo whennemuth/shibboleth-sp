@@ -36,39 +36,46 @@ The shibboleth-sp library is used anywhere it can intercept http traffic:
   Here the app need not be restricted to nodejs.
 - **External to the application server**. An example of this would be using shibboleth-sp in a [lambda@edge](https://docs.aws.amazon.com/lambda/latest/dg/lambda-edge.html) function as part of a [cloudfront distribution](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-working-with.html). Your app would be deployed somewhere behind a load-balancer, and cloudfront would carry out authentication.
 
+### Usage:
+
+A companion [shibboleth-sp-server](https://github.com/whennemuth/shibboleth-sp) github repository exists to provide an example on how this shibboleth-sp package can be used.
+There you will find a rudimentary server based application using [Node Express](https://expressjs.com/) that you can run to authenticate to your Shibboleth IDP through your browser on localhost. This package is imported and used there in  `./src/EntrypointSp.ts` and follows the second "On the application server" topology item above.
+
 ### Configuration:
 
 The `./src/Config.ts` module defines how shibboleth-sp is configured. Defaults for these can be overridden with entries in the `./.env` file:
 
-- **domain**: string *(env: DOMAIN, default: "localhost")*, The domain for requests to your app that shibboleth-sp is "listening" to.
-- **appLoginHeader**: string *(env: APP_LOGIN_HEADER)*, The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for login.
-- **appLogoutHeader**: string *(env: APP_LOGOUT_HEADER)*, The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for logout.
-- **appAuthorization**: boolean *(env: APP_AUTHORIZATION, default: "true")*, True indicates the standard mode as described in the authentication flow section above. False indicates the basic mode as described in the authentication flow section above.
--  **samlParms**:
-    - **entityId:** string *(env: ENTITY_ID)*, The entity ID of your app know to shibboleth. Example: `'https://*.myapp.bu.edu/shibboleth'`
-    - **entryPoint:** string *(env: ENTRY_POINT)*, The entry point, aka IDP address of shibboleth: Example: `'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO'` 
-    - **logoutUrl:** string *(env: LOGOUT_URL)*, The logout url used by the IDP. Example: `'https://shib.bu.edu/idp/logout.jsp'`
-    - **idpCert:** string, *(env: IDP_CERT)*, The public cert of the IDP. Navigate to the IDP entry point in a browser and acquire this cert from the `'<ds:X509Certificate>'` element.
-    - **cert:** string, *(env: SAML_CERT)*, The SAML certificate item of your service provider metadata.
-    - **key:** string, *(env: SAML_PK)*, The private key item of your service provider metadata.
-- **jwtPrivateKeyPEM**: string *(env: JWT_PRIVATE_KEY_PEM, default: read on...)*, A private key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario.
-- **jwtPublicKeyPEM**: string *(env: JWT_PUBLIC_KEY_PEM, default: read on...)*, A public key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario.
-- **customHeaders**: *KeyValuePair[]*, A way to inject those headers that one wishes sp-shibboleth to append to incoming reqests. Currently not available as environment variable(s).
+|        Name        |       type       |   default   | environment<br />variable name | description                                                  |
+| :----------------: | :--------------: | :---------: | :----------------------------: | :----------------------------------------------------------- |
+|       domain       |      string      | "localhost" |            DOMAIN             | The domain for requests to your app that shibboleth-sp is "listening" to. |
+|   appLoginHeader   |      string      |     n/a     |       APP_LOGIN_HEADER       | The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for login. |
+|  appLogoutHeader   |      string      |     n/a     |       APP_LOGOUT_HEADER       | The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting for logout. |
+|  appAuthorization  |     boolean      |   "true"    |       APP_AUTHORIZATION       | True indicates the standard mode as described in the authentication flow section above. False indicates the basic mode as described in the authentication flow section above. |
+|  samlParms.entityId  |      string      |     n/a     |           ENTITY_ID           | The entity ID of your app known to shibboleth.<br />**example:** `'https://*.myapp.bu.edu/shibboleth'` |
+| samlParms.entryPoint |      string      |     n/a     |          ENTRY_POINT          | The entry point, aka IDP address of shibboleth.<br />**example:** `'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO'` |
+| samlParms.logoutUrl  |      string      |     n/a     |          LOGOUT_URL           | The logout url used by the IDP.<br />**example:** `'https://shib.bu.edu/idp/logout.jsp'` |
+|  samlParms.idpCert   |      string      |     n/a     |           IDP_CERT            | The public cert of the IDP. Navigate to the IDP entry point in a browser and acquire this cert from the `'<ds:X509Certificate>'` element. |
+|   samlParms.cert     |      string      |     n/a     |           SAML_CERT           | The SAML certificate item of your service provider metadata. |
+|    samlParms.key     |      string      |     n/a     |           SAML_PK             | The private key item of your service provider metadata. |
+|  jwtPrivateKeyPEM  |      string      | generated | JWT_PRIVATE_KEY_PEM | A private key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario. |
+|  jwtPublicKeyPEM   |      string      | generated |  JWT_PUBLIC_KEY_PEM  | A public key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario. |
+|   customHeaders    | KeyValuePair[]   |     n/a     |              n/a               | A way to inject those headers that one wishes sp-shibboleth to append to incoming requests. Currently not available as environment variable(s). |
 
-There are also a few configurations defined in `./src/Config.ts` that apply only to running the project locally in docker compose:
+### Package and publish:
 
-- **spPort:** string|number *(env: DOCKER_SP_PORT, default 5000)*, This is the port that the "sp" container will bind to the host machine. This is the port that all requests from the browser must use as they all need to pass through the "sp" container.
-- **spProxyExtras:** string *(env: DOCKER_SP_PROXY_EXTRAS)*, This boolean indicates whether to add or modify various headers to the request that is being proxied from the "sp" container to the "app" container. This is useful if the app container is running something (like WordPress) for which it would otherwise seem that requests are NOT self-originated, and would potentially issue a redirect in an effort to "normalize" or correct what it sees as a port mismatch from the host header, or produces markup that does not reflect the protocol, port or hostname that the browser is using to access the app via the sp proxy.
-- **appPort:** string|number *(env: DOCKER_APP_PORT, default 80)*, This is the port that the "app" container will expose and the "sp" container will proxy to using [Axios](https://axios-http.com/) requests. Use "443" if you want the "app" container to expect https traffic and use ssl.
-- **appHostname:** string, This is the name of the hostname of the "app" container as published on the Docker network. This will be the same name as the service element in the docker-compose.yml file and is "hard-coded" as an environment variable both the sp and app service definitions - thus, no need to have a corresponding entry in `./.env` file for it.
+To create a package that is ready to publish to a npm registry:
 
-### Publishing and Installing:
+```
+npm run pack
+```
 
-For and example of how this project can be packaged and then installed and used by another project, see [Publishing and Installing](./docs/publish-and-install.md)
+To both both package and publish to a npm registry:
 
-### Running Locally
+```
+npm run publish
+```
 
-For directions on how to run this app locally, including step debugging, see [Running Locally](./docs/run-locally.md)
+*NOTE: Change the name property for of the project (and possibly the version) in the package.json file be for running the above steps.*
 
 ### Unit Tests
 

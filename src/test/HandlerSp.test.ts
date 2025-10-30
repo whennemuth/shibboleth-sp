@@ -22,8 +22,9 @@ const logoutUrl = 'https://shib-test.bu.edu/Shibboleth.sso/Logout';
 /**
  * Partial mock for SamlTools. Mocks the sendAssert function to return either good or bad result.
  * 
- * NOTE: Using mockImplementation() for ES6 class mocking, but beware of gotchas. SEE: 
- * https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
+ * @remarks Using mockImplementation() for ES6 class mocking, but beware of gotchas.
+ * 
+ * @see https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
  */
 jest.mock('../Saml', () => {
   if(process.env?.unmocked === 'true') {

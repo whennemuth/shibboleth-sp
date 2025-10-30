@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { SAMLAssertResponse, ServiceProvider } from 'saml2-js';
-import { SamlResponseObject, SamlTools, SamlToolsParms, getFriendlySamlResponse } from '../Saml';
+import { SamlResponseObject, SamlTools, SamlParms, getFriendlySamlResponse } from '../Saml';
 import { Keys } from '../Keys';
 import { getSampleSamlResponseXML, getSampleSamlResponseBase64 } from './SamlResponseMock'
 import { MockSamlAssertResponse } from './SamlAssertResponseMock';
@@ -10,7 +10,7 @@ const samlToolParms = {
   entityId: 'https://shib-test.bu.edu/idp/shibboleth',
   entryPoint: 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO',
   logoutUrl: 'https://shib-test.bu.edu/Shibboleth.sso/Logout'
-} as SamlToolsParms;
+} as SamlParms;
 const domain = 'd129tjsl6pgy8.cloudfront.net';
 const relayState = '/path/to/app'
 const samlTools = new SamlTools(samlToolParms);

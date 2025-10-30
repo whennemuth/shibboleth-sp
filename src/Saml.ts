@@ -3,33 +3,24 @@ import { ServiceProvider, ServiceProviderOptions, IdentityProvider,
 import { DOMParser } from '@xmldom/xmldom';
 import { IRequest } from './Http';
 
-export type SamlToolsParms = {
-  /**
-   * The entity ID of your app know to shibboleth. Example: 'https://*.myapp.bu.edu/shibboleth'
-   */
-  entityId:string, 
-  /**
-   * The entry point, aka IDP address of shibboleth: Example: 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO'
-   */
-  entryPoint:string, 
-  /**
-   * The logout url used by the IDP. Example: 'https://shib.bu.edu/idp/logout.jsp'
-   */
-  logoutUrl:string, 
-  /**
-   * The public cert of the IDP. Navigate to the IDP entry point in a browser and acquire this cert 
-   * from the '<ds:X509Certificate>' element.
-   */
-  idpCert:string,
-  /**
-   * The SAML certificate item of your service provider metadata.
-   */
-  cert?:string,
-  /**
-   * The private key item of your service provider metadata.
-   */
-  key?:string
-};
+/**
+ * Parameters required to configure the SAML tools.
+ * 
+ * @property entityId - The entity ID of your app known to shibboleth (e.g., 'https://*.myapp.bu.edu/shibboleth')
+ * @property entryPoint - The IDP address for SSO (e.g., 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO')
+ * @property logoutUrl - The IDP logout URL (e.g., 'https://shib.bu.edu/idp/logout.jsp')
+ * @property idpCert - The public certificate from the IDP's X509Certificate element
+ * @property cert - Optional SAML certificate for your service provider metadata
+ * @property key - Optional private key for your service provider metadata
+ */
+export interface SamlParms {
+  entityId: string;
+  entryPoint: string;
+  logoutUrl: string;
+  idpCert: string;
+  cert?: string;
+  key?: string;
+}
    
 export type SamlResponseObject = {
   samlResponseParm:string|undefined,
@@ -47,7 +38,7 @@ export class SamlTools {
   private sp_options: ServiceProviderOptions;
   private idp_options: IdentityProviderOptions;
 
-  constructor(parms:SamlToolsParms) {
+  constructor(parms: SamlParms) {
 
     const { entityId, entryPoint, logoutUrl, idpCert, cert, key } = parms;
 
@@ -97,7 +88,8 @@ export class SamlTools {
 
   /**
    * The request indicates the user is not authenticated, and so needs to be redirected to a url for signin with the IDP.
-   * https://www.npmjs.com/package/saml2-js#create_login_request_urlidp-options-cb
+   * 
+   * @see https://www.npmjs.com/package/saml2-js#create_login_request_urlidp-options-cb
    * @param relay_state 
    * @returns 
    */
@@ -202,8 +194,9 @@ export class SamlTools {
 
   /**
    * The request has a SAMLResponse parameter and so indicates authentication has completed and a followup
-   * assert against the SAMLResponse parameter is next  .
-   * https://www.npmjs.com/package/saml2-js#create_login_request_urlidp-options-cb
+   * assert against the SAMLResponse parameter is next.
+   * 
+   * @see https://www.npmjs.com/package/saml2-js#create_login_request_urlidp-options-cb
    * @param requestUrl 
    * @returns 
    */

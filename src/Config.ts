@@ -1,52 +1,29 @@
 import { KeyValuePair } from "./Http";
 import { Keys } from "./Keys";
-import { SamlToolsParms } from "./Saml";
+import { SamlParms } from "./Saml";
 
 
 /**
  * A type that accounts for ALL configurable values.
+ * 
+ * @property domain - The domain for app requests (browser access domain)
+ * @property appLoginHeader - Header name for login redirects
+ * @property appLogoutHeader - Header name for logout redirects  
+ * @property appAuthorization - True for standard mode, false for basic mode
+ * @property samlParms - SAML configuration parameters
+ * @property jwtPrivateKeyPEM - Optional private key for JWT generation
+ * @property jwtPublicKeyPEM - Optional public key for JWT generation
+ * @property customHeaders - Optional custom headers to append to requests
  */
-export type IConfig = {
-  /**
-   * The domain for requests to the app that shibboleth-sp is "listening" to. All http(s) requests will be made
-   * to this domain. This is the domain that the browser will use to access the app and relay_state urls will be
-   * constructed using this domain.
-   */
-  domain:string,
-  /**
-   * The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting 
-   * for login.
-   */
-  appLoginHeader:string,
-  /**
-   * The name of a header shibboleth-sp will apply to requests. Apps will look for this header when redirecting 
-   * for logout.
-   */
-  appLogoutHeader:string,
-  /**
-   * True indicates the standard mode for authentication flow. False indicates the basic mode. See the README.md
-   * for more information on these modes.
-   */
-  appAuthorization:boolean,
-  /**
-   * See @SamlToolsParms for more information on these parameters.
-   */
-  samlParms:SamlToolsParms
-  /**
-   * A private key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as 
-   * long as the application process is running, which would make sense in a testing scenario.
-   */
-  jwtPrivateKeyPEM?:string,
-  /**
-   * A public key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as 
-   * long as the application process is running, which would make sense in a testing scenario.
-   */
-  jwtPublicKeyPEM?:string,
-  /**
-   * A way to inject those headers that one wishes sp-shibboleth to append to incoming reqests. 
-   * Currently not available as environment variable(s).
-   */
-  customHeaders?:KeyValuePair[];
+export interface IConfig {
+  domain: string;
+  appLoginHeader: string;
+  appLogoutHeader: string;
+  appAuthorization: boolean;
+  samlParms: SamlParms;
+  jwtPrivateKeyPEM?: string;
+  jwtPublicKeyPEM?: string;
+  customHeaders?: KeyValuePair[];
 }
 
 /**
@@ -82,67 +59,4 @@ export const getConfigFromEnvironment = () => {
       entityId, entryPoint, logoutUrl, idpCert, cert, key
     }
   } as IConfig;
-}
-
-/**
- * A type that accounts for only those configurable values that are needed when running in Docker compose.
- */
-export type IDockerConfig = {
-  /**
-   * This is the port that the "sp" container will bind to the host machine. This is the port that all requests
-   * from the browser must use as they all need to pass through the "sp" container.
-   */
-  spPort:number,
-  /**
-   * This boolean indicates whether to add or modify various headers to the request that is being proxied
-   * from the "sp" container to the "app" container. This is useful if the app container is running  
-   * something (like WordPress) for which it would otherwise seem that requests are NOT self-originated, 
-   * and would potentially issue a redirect in an effort to "normalize" or correct what it sees as a port 
-   * mismatch from the host header, or produces markup that does not reflect the protocol, port or hostname
-   * that the browser is using to access the app via the sp proxy.
-   */
-  spProxyExtras:boolean,
-  /**
-   * This is the port that the "app" container will expose and the "sp" container will proxy to using axios requests.
-   * Use "443" if you want the "app" container to expect https traffic and use ssl.
-   */
-  appPort?:number,
-  /**
-   * This is the name of the hostname of the "app" container as published on the Docker network. 
-   * This will be the same name as the service element in the docker-compose.yml file.
-   */
-  appHostname?:string,
-  /**
-   * If at least spPort has a value, then we must be running in Docker compose.
-   */
-  isDockerCompose:() => boolean
-}
-
-/**
- * @returns An instance of IDockerConfig whose values are ALL obtained from the environment.
- */
-export const getDockerConfigFromEnvironment = ():IDockerConfig => {
-  let {
-    DOCKER_SP_PORT:spPort,
-    DOCKER_SP_PROXY_EXTRAS:spProxyExtras,
-    DOCKER_APP_PORT:appPort,
-    DOCKER_APP_HOST:appHostname
-  } = process.env;
-
-  const cfg = { appHostname } as IDockerConfig;
-  if(spPort && !isNaN(parseInt(spPort))) {
-    cfg.spPort = parseInt(spPort);
-  }
-  if(appPort && !isNaN(parseInt(appPort))) {
-    cfg.appPort = parseInt(appPort);
-  }
-  cfg.spProxyExtras = `${spProxyExtras}`.toLowerCase() == 'true';
-  cfg.isDockerCompose = () => {
-    // spPort is a minimum requirement for running in Docker compose. If it is not set, then we are not 
-    // running in Docker compose (though may still be running "locally" from a vscode launch configuration).
-    return !!cfg.spPort;
-  };
-
-  // If not isDockerCompose, then what is returned here as defaults probably has no use, but return it anyway in case.
-  return cfg;
 }

@@ -1,6 +1,8 @@
-export { startExpressServer } from './EntrypointSp';
-export { SamlToolsParms as SamlParms } from './Saml';
+export { SamlParms } from './Saml';
 export * from './HandlerSp';
 export * from './Http';
 export * from './Config';
 export * from './Jwt';
+export * from './Keys';
+export * from './Saml';
+export * from './Utils';

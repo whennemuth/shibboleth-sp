@@ -1,4 +1,3 @@
-import { Request } from 'express';
 import { IRequest, RequestBody, RequestHeaders } from './Http';
 
 const isBlank = (s:string|null|undefined):boolean => {
@@ -15,6 +14,10 @@ export const ParameterTester = {
   isBlank, isNotBlank, anyBlank, anyNotBlank, allBlank, noneBlank, someBlankSomeNot
 }
 
+/**
+ * Prints debug information to console when DEBUG environment variable is set to 'true'.
+ * @param value The debug message to print
+ */
 export const debugPrint = (value:string) => {
   if(process.env?.DEBUG == 'true') {
     console.log(`DEBUG: ${value}`);
@@ -24,9 +27,9 @@ export const debugPrint = (value:string) => {
 /**
  * Find the first field with a value in an object for the list of field names provided.
  * The field is assumed to be an array, and the value is the first element of it.
- * @param parentObj 
- * @param names 
- * @returns 
+ * @param parentObj The object to search within
+ * @param names The field names to search for
+ * @returns The first non-empty field value found, or null if none found
  */
 export const findFirstFieldValue = (parentObj:any, ...names:any):string|null => {
   for(const name of names) {
@@ -39,12 +42,22 @@ export const findFirstFieldValue = (parentObj:any, ...names:any):string|null => 
   return null;
 }
 
+/**
+ * Logs debug messages to console when DEBUG environment variable is set to 'true'.
+ * @param msg The message to log
+ */
 export const debugLog = (msg:string) => {
   if(process.env?.DEBUG == 'true') {
     console.log(msg);
   }
 }
 
+/**
+ * Type guard function to check if a value is of a specific type based on field presence.
+ * @param value The value to check
+ * @param fieldName The field name that should exist on the type
+ * @returns True if the field exists on the value, indicating it's of type T
+ */
 export const instanceOf = <T>(value: any, fieldName: string): value is T => fieldName in value;
 
 

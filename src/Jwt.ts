@@ -4,7 +4,8 @@ import { IRequest } from './Http';
 
 /**
  * Use the jsonwebtoken library to create and verify jwts.
- * https://www.npmjs.com/package/jsonwebtoken
+ * 
+ * @see https://www.npmjs.com/package/jsonwebtoken
  */
 export class JwtTools {
 
@@ -32,9 +33,9 @@ export class JwtTools {
   /**
    * The cookie header is a concatenation of name=value pairs delimited by a ";" character.
    * Get the value of one of these pairs, specified by name.
-   * @param request 
-   * @param cookieName 
-   * @returns 
+   * @param request The HTTP request containing cookies
+   * @param cookieName The name of the cookie to retrieve
+   * @returns The cookie value if found, undefined otherwise
    */
   public parseCookieValue(request:IRequest, cookieName:string) {
     let { cookie:cookieHeader } = request.headers;
@@ -58,11 +59,12 @@ export class JwtTools {
   /**
    * Any environment variable starting with "IMPERSONATE_" is treated as an attribute for building a jwt token.
    * This provides an option for mocking a jwt while running locally for testing so as to "pretend" a valid jwt 
-   * was provided with the http request. Example:
-   *   IMPERSONATE_buPrincipal=wrh
-   *   IMPERSONATE_eduPersonPrincipalName=wrh@bu.edu
-   *   IMPERSONATE_eduPersonAffiliation=employee|member|staff
-   * @returns 
+   * was provided with the http request.
+   * @example
+   * IMPERSONATE_buPrincipal=wrh
+   * IMPERSONATE_eduPersonPrincipalName=wrh@bu.edu
+   * IMPERSONATE_eduPersonAffiliation=employee|member|staff
+   * @returns JWT token object with impersonation attributes, or null if no IMPERSONATE_ environment variables are found
    */
   public getImpersonationToken():any {
     let sub:string = '';
