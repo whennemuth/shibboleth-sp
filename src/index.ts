@@ -1,4 +1,3 @@
-export { SamlParms } from './Saml';
 export * from './HandlerSp';
 export * from './Http';
 export * from './Config';

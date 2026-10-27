@@ -1,29 +1,37 @@
 const esbuild = require('esbuild');
 const { execSync } = require('child_process');
+const fs = require('fs');
 
-// Step 1: Run TypeScript compiler to generate type definitions
-execSync('tsc');
-
-// Step 2: Use esbuild to bundle JavaScript files
-
-// Build for ESM
-esbuild.build({
+const common = {
   entryPoints: ['src/index.ts'],
   bundle: true,
-  outdir: 'dist/esm',
-  format: 'esm',
   platform: 'node',
+  target: 'node22',
   tsconfig: 'tsconfig.json',
   sourcemap: true,
-}).catch(() => process.exit(1));
+};
 
-// Build for CJS
-esbuild.build({
-  entryPoints: ['src/index.ts'],
-  bundle: true,
-  outdir: 'dist/cjs',
-  format: 'cjs',
-  platform: 'node',
-  tsconfig: 'tsconfig.json',
-  sourcemap: true
-}).catch(() => process.exit(1));
+(async () => {
+  fs.rmSync('dist', { recursive: true, force: true });
+
+  execSync('tsc -p tsconfig.json --noEmit', { stdio: 'inherit' });
+
+  // A single rolled-up declaration file can be served to both import and require consumers.
+  execSync('dts-bundle-generator --no-check -o dist/types/index.d.ts src/index.ts', { stdio: 'inherit' });
+  fs.copyFileSync('dist/types/index.d.ts', 'dist/types/index.d.mts');
+
+  await Promise.all([
+    esbuild.build({ ...common, format: 'cjs', outdir: 'dist/cjs' }),
+    esbuild.build({
+      ...common,
+      format: 'esm',
+      outdir: 'dist/esm',
+      outExtension: { '.js': '.mjs' },
+      // Inlined CommonJS dependencies require() node builtins, which ESM does not provide.
+      banner: { js: "import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" },
+    }),
+  ]);
+})().catch(err => {
+  console.error(err.message ?? err);
+  process.exit(1);
+});

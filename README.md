@@ -61,21 +61,40 @@ The `./src/Config.ts` module defines how shibboleth-sp is configured. Defaults f
 |  jwtPublicKeyPEM   |      string      | generated |  JWT_PUBLIC_KEY_PEM  | A public key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario. |
 |   customHeaders    | KeyValuePair[]   |     n/a     |              n/a               | A way to inject those headers that one wishes sp-shibboleth to append to incoming requests. Currently not available as environment variable(s). |
 
+### Build:
+
+Requires Node.js 22+.
+
+```
+npm install
+npm run build
+```
+
+This produces:
+
+- `dist/cjs/index.js` - CommonJS build, used by `require()`
+- `dist/esm/index.mjs` - ES module build, used by `import`
+- `dist/types/index.d.ts` / `index.d.mts` - type declarations
+
+All runtime dependencies *(saml2-js, jsonwebtoken, node-forge, etc.)* are bundled into these files, so consumers do not install them. The `exports` field in package.json directs `import` and `require` consumers to the right build.
+To only type-check the source, run `npm run typecheck`.
+
 ### Package and publish:
 
-To create a package that is ready to publish to a npm registry:
+To create a package that is ready to publish to a npm registry *(this runs the build automatically)*:
 
 ```
 npm run pack
 ```
 
-To both both package and publish to a npm registry:
+To publish to a npm registry *(this also runs the build automatically)*:
 
 ```
-npm run publish
+npm run release
 ```
 
 *NOTE: Change the name property for of the project (and possibly the version) in the package.json file be for running the above steps.*
+*Bump the version whenever you re-pack with changes: projects that install the tarball by file path (like shibboleth-sp-server) may otherwise keep installing the old contents.*
 
 ### Unit Tests
 
