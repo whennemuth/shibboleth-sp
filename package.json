@@ -13,7 +13,8 @@
     "pack": "npm pack --pack-destination .",
     "release": "npm publish",
     "watch": "tsc -w --noEmit",
-    "test": "jest --silent"
+    "test": "jest --silent",
+    "publish-s3": "npm run pack && aws s3 cp shibboleth-sp-1.0.2.tgz s3://simple-npm-package-bucket/shibboleth-sp/"    
   },
   "engines": {
     "node": ">=22"
