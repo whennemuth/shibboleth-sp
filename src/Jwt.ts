@@ -1,4 +1,4 @@
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import ms, { StringValue } from 'ms';
 import { IRequest } from './Http';
 

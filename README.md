@@ -74,10 +74,29 @@ This produces:
 
 - `dist/cjs/index.js` - CommonJS build, used by `require()`
 - `dist/esm/index.mjs` - ES module build, used by `import`
+- `dist/*/index.*.map` - source maps
 - `dist/types/index.d.ts` / `index.d.mts` - type declarations
 
-All runtime dependencies *(saml2-js, jsonwebtoken, node-forge, etc.)* are bundled into these files, so consumers do not install them. The `exports` field in package.json directs `import` and `require` consumers to the right build.
+The packages listed under `dependencies` in package.json *(jsonwebtoken, ms, node-forge, @xmldom/xmldom)* are installed by consumers. `saml2-js` and its own dependencies are bundled into the build instead, so that the patched versions forced by this project's `overrides` ship with the package. The `exports` field in package.json directs `import` and `require` consumers to the right build.
 To only type-check the source, run `npm run typecheck`.
+
+**Source maps:** the `SOURCEMAP` environment variable controls what the source maps contain:
+
+- `app` *(default)* - maps embed the TypeScript source of this package only, so consumers can step through it in a debugger.
+- `full` - maps also embed the source of the bundled saml2-js code *(much larger package)*.
+- `none` - no source maps *(smallest package)*.
+
+```
+SOURCEMAP=none npm run pack
+```
+
+**Debugging from a consumer project:** VS Code ignores source maps under `node_modules` by default. To step through this package's TypeScript, add it to the launch configuration's `resolveSourceMapLocations`:
+
+```
+"resolveSourceMapLocations": [ "${workspaceFolder}/**", "${workspaceFolder}/node_modules/shibboleth-sp/**" ]
+```
+
+To see TypeScript locations in stack traces, run node with `--enable-source-maps`.
 
 ### Package and publish:
 

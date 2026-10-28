@@ -1,6 +1,6 @@
 {
   "name": "shibboleth-sp",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A nodejs typescript library that provides all service provider functionality for authenticating with a shibboleth IDP",
   "repository": {
     "type": "git",
@@ -14,7 +14,7 @@
     "release": "npm publish",
     "watch": "tsc -w --noEmit",
     "test": "jest --silent",
-    "publish-s3": "npm run pack && aws s3 cp shibboleth-sp-1.0.2.tgz s3://simple-npm-package-bucket/shibboleth-sp/"    
+    "publish-s3": "npm run pack && aws s3 cp shibboleth-sp-1.1.0.tgz s3://simple-npm-package-bucket/shibboleth-sp/"    
   },
   "engines": {
     "node": ">=22"
@@ -40,7 +40,11 @@
     "dist"
   ],
   "dependencies": {
-    "@types/saml2-js": "^3.0.4"
+    "@types/saml2-js": "^3.0.4",
+    "@xmldom/xmldom": "^0.8.15",
+    "jsonwebtoken": "^9.0.3",
+    "ms": "^2.1.3",
+    "node-forge": "^1.4.2"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -50,13 +54,9 @@
     "@types/ms": "^2.1.0",
     "@types/node": "^22.20.5",
     "@types/node-forge": "^1.3.14",
-    "@xmldom/xmldom": "^0.8.15",
     "dts-bundle-generator": "^9.5.1",
     "esbuild": "^0.28.2",
     "jest": "^30.5.2",
-    "jsonwebtoken": "^9.0.3",
-    "ms": "^2.1.3",
-    "node-forge": "^1.4.2",
     "saml2-js": "^4.0.4",
     "ts-jest": "^29.4.15",
     "tsx": "^4.23.15",
