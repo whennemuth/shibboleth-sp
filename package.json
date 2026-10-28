@@ -14,7 +14,13 @@
     "release": "npm publish",
     "watch": "tsc -w --noEmit",
     "test": "jest --silent",
-    "publish-s3": "npm run pack && aws s3 cp shibboleth-sp-1.1.0.tgz s3://simple-npm-package-bucket/shibboleth-sp/"    
+    "prepublishOnly": "npm test && npx attw --pack .",
+    "publish-s3": "bash bin/publish.sh s3",
+    "publish-npm": "bash bin/publish.sh npm"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "engines": {
     "node": ">=22"
