@@ -72,19 +72,20 @@ npm run build
 
 This produces:
 
-- `dist/cjs/index.js` - CommonJS build, used by `require()`
-- `dist/esm/index.mjs` - ES module build, used by `import`
-- `dist/*/index.*.map` - source maps
-- `dist/types/index.d.ts` / `index.d.mts` - type declarations
+- `dist/cjs/index.js` - CommonJS build, used by both `require()` and `import`
+- `dist/cjs/index.js.map` - source map
+- `dist/types/index.d.ts` - type declarations
 
-The packages listed under `dependencies` in package.json *(jsonwebtoken, ms, node-forge, @xmldom/xmldom)* are installed by consumers. `saml2-js` and its own dependencies are bundled into the build instead, so that the patched versions forced by this project's `overrides` ship with the package. The `exports` field in package.json directs `import` and `require` consumers to the right build.
+The packages listed under `dependencies` in package.json *(jsonwebtoken, ms, node-forge, @xmldom/xmldom)* are installed by consumers. `saml2-js` and its own dependencies are bundled into the build instead, so that the patched versions forced by this project's `overrides` ship with the package.
 To only type-check the source, run `npm run typecheck`.
+
+**Why CommonJS only:** the inlined `saml2-js` / XML-crypto code (and the external `node-forge` crypto library) is CommonJS-only and `require`s Node built-ins such as `crypto`. An ES module build of it would need a `createRequire(import.meta.url)` shim, but downstream bundlers that output CommonJS *(CDK `NodejsFunction`, Lambda@Edge bundles, shibboleth-sp-server)* pick the ES module build through the `import` condition and lose `import.meta.url` when converting it, so the shim crashes at load time with `ERR_INVALID_ARG_VALUE`. ES module consumers lose nothing: Node imports CommonJS packages with named exports, so `import { JwtTools } from 'shibboleth-sp'` works. The build fails if `import.meta` ever appears in `dist/cjs/index.js`.
 
 **Source maps:** the `SOURCEMAP` environment variable controls what the source maps contain:
 
-- `app` *(default)* - maps embed the TypeScript source of this package only, so consumers can step through it in a debugger.
-- `full` - maps also embed the source of the bundled saml2-js code *(much larger package)*.
-- `none` - no source maps *(smallest package)*.
+- `app` *(default)* - the map embeds the TypeScript source of this package only, so consumers can step through it in a debugger.
+- `full` - the map also embeds the source of the bundled saml2-js code *(much larger package)*.
+- `none` - no source map *(smallest package)*.
 
 ```
 SOURCEMAP=none npm run pack
@@ -122,4 +123,8 @@ To run any and all jest tests *.test.ts, use:
 ```
 npm run test
 ```
+
+### Release notes
+
+- **1.2.0** - Ships as CommonJS only: the ES module build (`dist/esm/index.mjs`) is removed, and `import` and `require` both resolve to `dist/cjs/index.js`. Fixes the load-time `ERR_INVALID_ARG_VALUE` crash (`createRequire(undefined)`) when a consumer re-bundles the package to CommonJS. Consumers can remove any `alias: { 'shibboleth-sp': require.resolve('shibboleth-sp') }` workaround from their bundler configuration. The public API is unchanged.
 

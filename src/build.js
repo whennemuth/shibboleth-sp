@@ -32,24 +32,18 @@ const stripLibrarySources = mapFile => {
 
   execSync('tsc -p tsconfig.json --noEmit', { stdio: 'inherit' });
 
-  // A single rolled-up declaration file can be served to both import and require consumers.
   execSync('dts-bundle-generator --no-check -o dist/types/index.d.ts src/index.ts', { stdio: 'inherit' });
-  fs.copyFileSync('dist/types/index.d.ts', 'dist/types/index.d.mts');
 
-  await Promise.all([
-    esbuild.build({ ...common, format: 'cjs', outdir: 'dist/cjs' }),
-    esbuild.build({
-      ...common,
-      format: 'esm',
-      outdir: 'dist/esm',
-      outExtension: { '.js': '.mjs' },
-      // Inlined CommonJS dependencies require() node builtins, which ESM does not provide.
-      banner: { js: "import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" },
-    }),
-  ]);
+  // CommonJS only: see "Why CommonJS only" in README.md.
+  await esbuild.build({ ...common, format: 'cjs', outdir: 'dist/cjs' });
+
+  // import.meta is undefined once a downstream bundler re-bundles this file to CommonJS.
+  if (fs.readFileSync('dist/cjs/index.js', 'utf8').includes('import.meta')) {
+    throw new Error('dist/cjs/index.js contains import.meta, which breaks consumers that bundle to CommonJS');
+  }
 
   if (SOURCEMAP === 'app') {
-    ['dist/cjs/index.js.map', 'dist/esm/index.mjs.map'].forEach(stripLibrarySources);
+    stripLibrarySources('dist/cjs/index.js.map');
   }
 })().catch(err => {
   console.error(err.message ?? err);

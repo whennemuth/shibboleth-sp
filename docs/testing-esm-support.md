@@ -1,5 +1,7 @@
 ## Jest ESM support
 
+> **Historical:** this project's tests run under `ts-jest` as CommonJS and the current `jest.config.js` does not use this setup. Kept for reference only.
+
 In order to allow jest to test against [ECMAScript Modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules), it is necessary to activate its experimental support for ESM.
 The following [jest documentation](https://jestjs.io/docs/ecmascript-modules) was followed in order to do this, but a few things are worth pointing out that were encountered while getting this to work:
 
