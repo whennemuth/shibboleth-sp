@@ -60,6 +60,28 @@ The `./src/Config.ts` module defines how shibboleth-sp is configured. Defaults f
 |  jwtPrivateKeyPEM  |      string      | generated | JWT_PRIVATE_KEY_PEM | A private key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario. |
 |  jwtPublicKeyPEM   |      string      | generated |  JWT_PUBLIC_KEY_PEM  | A public key for JSON web token (JWT) generation. If not provided, one will be generated that lasts as long as the application process is running, which would make sense in a testing scenario. |
 |   customHeaders    | KeyValuePair[]   |     n/a     |              n/a               | A way to inject those headers that one wishes sp-shibboleth to append to incoming requests. Currently not available as environment variable(s). |
+|     cookieName     |      string      | "auth-token-cookie" |          COOKIE_NAME           | The name of the cookie that carries the jwt. See [Sharing one sign-in across apps](#sharing-one-sign-in-across-apps-cookiedomain-and-cookiename) below. |
+|    cookieDomain    |      string      | none *(host-only)* |         COOKIE_DOMAIN          | A parent domain to scope the jwt cookie to, so the browser sends it to every host beneath that domain instead of only the host that set it. Must contain `domain`. See [Sharing one sign-in across apps](#sharing-one-sign-in-across-apps-cookiedomain-and-cookiename) below.<br />**example:** `'apps.example.edu'` |
+
+### Sharing one sign-in across apps (cookieDomain and cookieName):
+
+**The default: one sign-in per host.** After the IDP authenticates a user, shibboleth-sp puts the jwt in a cookie with no `Domain` attribute. Such a cookie is *host-only*: the browser sends it back only to the exact host that set it. An organization that runs several related apps under one parent domain - for example one instance of a dashboard per environment at `dev.apps.example.edu`, `test.apps.example.edu` and `prod.apps.example.edu` - gets a separate sign-in at each host. Moving to another host still works without a password prompt while the user's session at the IDP lasts, because each host's login request reuses that session, but every host makes its own round trip to the IDP. Once the IDP session ends *(typically hours, set by the IDP's operators)*, the next host the user visits prompts for a password again, even though the jwt at the host they signed in at is good for days.
+
+**Sharing the sign-in.** Setting `cookieDomain` to the apps' parent domain *(`apps.example.edu` above)* adds `Domain=apps.example.edu` to the cookie, so the browser sends it to every host beneath that domain. One sign-in at any of the hosts is then honored by all of them for the jwt's full lifetime *(7 days)*, with no further trips to the IDP. For this to work, every app that shares the sign-in must use:
+
+- the same `cookieDomain`,
+- the same `cookieName`, and
+- the same jwt key pair *(`jwtPrivateKeyPEM` / `jwtPublicKeyPEM`)*, so that each app can verify a token another one issued.
+
+`cookieDomain` must contain the `domain` shibboleth-sp is serving *(the domain itself or a parent of it)*. Browsers silently drop a cookie whose `Domain` doesn't, which would otherwise show up as a login loop, so shibboleth-sp fails such requests with a `500` that names both values. Choose a domain that contains only hosts you trust with the token: the browser sends the cookie to *every* host beneath it, including ones run by other applications, so a domain shared with unrelated apps would hand them your users' tokens. Browsers also refuse a public suffix such as `edu` or `co.uk`.
+
+**Why `cookieName` too.** A host beneath the parent domain receives the shared cookie whether or not it takes part in the sharing. If an app that should keep its own sign-in used the same cookie name, it would receive two cookies with that name - its own and the shared one - and could read either, since browsers don't guarantee their order. Giving the shared cookie its own name *(for example `apps-auth`)* keeps the two apart: each app reads only the cookie with its configured name and ignores the other. An app that must not accept the shared sign-in at all should also use its own jwt key pair. A different name only stops the browser from presenting the shared token; a different key pair stops the app from accepting it.
+
+**Logout.** Logging out clears the cookie with the same name and `Domain` it was set with, so logging out at one app that shares the sign-in signs the browser out of all of them. Logging out at an app with a host-only cookie signs out of that app only. Logout never revokes a jwt that has already been issued; it removes the cookie from that browser.
+
+**Apps that read the cookie themselves.** An app that decodes the jwt cookie itself, rather than relying on the headers shibboleth-sp adds, must look it up by the configured name: use `JwtTools#getCookieName()` instead of the static `JwtTools.COOKIE_NAME`, which is only the default.
+
+**Changing either setting** leaves any cookie already in a browser under the old name or scope until it expires. It is harmless, since shibboleth-sp reads only the cookie with the configured name, but users sign in once more after the change.
 
 ### Build:
 
@@ -126,5 +148,6 @@ npm run test
 
 ### Release notes
 
+- **1.3.0** - Adds the optional `cookieName` and `cookieDomain` settings (`IConfig`, or the `COOKIE_NAME` / `COOKIE_DOMAIN` environment variables) for sharing one sign-in across apps under a parent domain; see [Sharing one sign-in across apps](#sharing-one-sign-in-across-apps-cookiedomain-and-cookiename). `JwtTools` takes them as constructor options (`CookieOptions`) and uses them when setting, clearing and reading the cookie; `getCookieName()` now returns the configured name, and `getCookieDomain()` is new. `hostIsWithinCookieDomain()` is exported. With neither setting, behavior is unchanged: a host-only `auth-token-cookie`.
 - **1.2.0** - Ships as CommonJS only: the ES module build (`dist/esm/index.mjs`) is removed, and `import` and `require` both resolve to `dist/cjs/index.js`. Fixes the load-time `ERR_INVALID_ARG_VALUE` crash (`createRequire(undefined)`) when a consumer re-bundles the package to CommonJS. Consumers can remove any `alias: { 'shibboleth-sp': require.resolve('shibboleth-sp') }` workaround from their bundler configuration. The public API is unchanged.
 

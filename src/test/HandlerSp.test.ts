@@ -9,7 +9,7 @@ import { IRequest, IResponse, RequestHeaders, Headers } from '../Http';
 const domain = 'wp1.warhen.work';
 const uri = '/path/to/app';
 const loginUrl = 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO?SAMLRequest=some_base64_value';
-const logoutUrl = 'https://shib-test.bu.edu/Shibboleth.sso/Logout';
+const logoutUrl = 'https://shib-test.bu.edu/idp/profile/Logout';
 
 /**
  * ---------------------------------------------------------------------------
@@ -84,6 +84,7 @@ jest.mock('../Jwt', () => {
     return originalModule;
   }
   return {
+    hostIsWithinCookieDomain: (jest.requireActual('../Jwt') as any).hostIsWithinCookieDomain,
     JwtTools: jest.fn().mockImplementation(() => {
       return {
         __esModule: true,
@@ -401,5 +402,32 @@ describe('HandlerSp.handler', () => {
     mockConfig.appAuthorization = true;
     response = await handler(mockRequest, mockConfig) as any;
     assert();
+  });
+
+  it('Should hand the configured cookie name and domain to JwtTools', async () => {
+    const mockConfig:IConfig = getMockConfig();
+    const mockRequest:IRequest = getMockRequest();
+    mockRequest.uri = AUTH_PATHS.LOGOUT;
+
+    await handler(mockRequest, mockConfig);
+    expect(JwtTools).toHaveBeenLastCalledWith({ cookieName: undefined, cookieDomain: undefined });
+
+    mockConfig.cookieName = 'shared-auth';
+    mockConfig.cookieDomain = 'warhen.work';
+    const response = await handler(mockRequest, mockConfig) as IResponse;
+    expect(response.status).toEqual('302');
+    expect(JwtTools).toHaveBeenLastCalledWith({ cookieName: 'shared-auth', cookieDomain: 'warhen.work' });
+  });
+
+  it('Should fail if the cookie domain does not contain the request domain', async () => {
+    const mockConfig:IConfig = getMockConfig();
+    const mockRequest:IRequest = getMockRequest();
+    mockConfig.cookieDomain = 'example.edu';
+
+    const response = await handler(mockRequest, mockConfig) as IResponse;
+    expect(response.status).toEqual('500');
+    expect(JSON.parse(response.body as string).message).toEqual(
+      `Cookie domain "example.edu" does not contain the request domain "${domain}"`
+    );
   });
 });

@@ -14,6 +14,9 @@ import { SamlParms } from "./Saml";
  * @property jwtPrivateKeyPEM - Optional private key for JWT generation
  * @property jwtPublicKeyPEM - Optional public key for JWT generation
  * @property customHeaders - Optional custom headers to append to requests
+ * @property cookieName - Optional name for the jwt cookie (default: "auth-token-cookie")
+ * @property cookieDomain - Optional parent domain for the jwt cookie, so one sign-in is honored by every
+ * app beneath it that shares the jwt keys (default: none - the cookie is host-only). Must contain domain.
  */
 export interface IConfig {
   domain: string;
@@ -24,6 +27,8 @@ export interface IConfig {
   jwtPrivateKeyPEM?: string;
   jwtPublicKeyPEM?: string;
   customHeaders?: KeyValuePair[];
+  cookieName?: string;
+  cookieDomain?: string;
 }
 
 /**
@@ -42,7 +47,9 @@ export const getConfigFromEnvironment = () => {
     SAML_CERT:cert,
     SAML_PK:key,
     JWT_PRIVATE_KEY_PEM:jwtPrivateKeyPEM,
-    JWT_PUBLIC_KEY_PEM:jwtPublicKeyPEM
+    JWT_PUBLIC_KEY_PEM:jwtPublicKeyPEM,
+    COOKIE_NAME:cookieName,
+    COOKIE_DOMAIN:cookieDomain
   } = process.env;
 
   // If JWT keys are not in the environment, then generate them.
@@ -53,7 +60,7 @@ export const getConfigFromEnvironment = () => {
   }
 
   return {
-    domain, appLoginHeader, appLogoutHeader, jwtPrivateKeyPEM, jwtPublicKeyPEM,
+    domain, appLoginHeader, appLogoutHeader, jwtPrivateKeyPEM, jwtPublicKeyPEM, cookieName, cookieDomain,
     appAuthorization: `${appAuthorization}`.toLowerCase() == 'false' ? false : true,
     samlParms: {
       entityId, entryPoint, logoutUrl, idpCert, cert, key

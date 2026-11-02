@@ -9,7 +9,7 @@ import { IRequest } from '../Http';
 const samlToolParms = {
   entityId: 'https://shib-test.bu.edu/idp/shibboleth',
   entryPoint: 'https://shib-test.bu.edu/idp/profile/SAML2/Redirect/SSO',
-  logoutUrl: 'https://shib-test.bu.edu/Shibboleth.sso/Logout'
+  logoutUrl: 'https://shib-test.bu.edu/idp/profile/Logout'
 } as SamlParms;
 const domain = 'd129tjsl6pgy8.cloudfront.net';
 const relayState = '/path/to/app'

@@ -1,0 +1,13 @@
+{
+  // Type-checking for the jest tests, which the root tsconfig.json excludes from the build. Without a tsconfig of
+  // their own, editors check them with TypeScript's defaults, and TypeScript 6 no longer loads @types packages
+  // automatically, so jest's globals (describe, it, expect) must be listed in "types".
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": [ "node", "jest" ],
+    "noEmit": true,
+    "emitDeclarationOnly": false
+  },
+  "include": [ "." ],
+  "exclude": []
+}

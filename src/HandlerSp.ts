@@ -1,5 +1,5 @@
 import { SamlTools, SendAssertResult } from './Saml';
-import { JwtTools } from './Jwt';
+import { JwtTools, hostIsWithinCookieDomain } from './Jwt';
 import { debugPrint } from './Utils';
 import { IConfig } from './Config';
 import { IRequest, IResponse, KeyValuePair, Headers, addHeader } from './Http';
@@ -21,9 +21,9 @@ export const APP_AUTHORIZATION_HEADER_NAME = 'app_authorization';
  */
 export const handler = async (originRequest:IRequest, config:IConfig):Promise<IRequest|IResponse> => {
 
-  let { 
-    domain, appAuthorization, appLoginHeader, appLogoutHeader, samlParms, 
-    jwtPrivateKeyPEM, jwtPublicKeyPEM, customHeaders=[] as KeyValuePair[]
+  let {
+    domain, appAuthorization, appLoginHeader, appLogoutHeader, samlParms,
+    jwtPrivateKeyPEM, jwtPublicKeyPEM, customHeaders=[] as KeyValuePair[], cookieName, cookieDomain
   } = config;
 
   const { querystring, uri } = originRequest;
@@ -32,10 +32,6 @@ export const handler = async (originRequest:IRequest, config:IConfig):Promise<IR
   const relayDomain = `https://${domain}`;
   samlTools.setAssertUrl(`${relayDomain}/assert`);
 
-  const jwtTools = new JwtTools();
-  jwtTools.resetPublicKey(jwtPublicKeyPEM!);
-  jwtTools.resetPrivateKey(jwtPrivateKeyPEM!);
-  
   // Set appAuth. True means that the target app "decides" if authentication is needed (default).
   // False means an assumption that all requests must be authenticated and that is enforced here.
   const customHdr = headers.get(APP_AUTHORIZATION_HEADER_NAME);
@@ -44,6 +40,15 @@ export const handler = async (originRequest:IRequest, config:IConfig):Promise<IR
   }
 
   try {
+    // A browser silently drops a cookie whose Domain attribute does not contain the host that set it, which
+    // would surface later as a login loop. Fail with the actual cause instead.
+    if(cookieDomain && ! hostIsWithinCookieDomain(domain, cookieDomain)) {
+      throw new Error(`Cookie domain "${cookieDomain}" does not contain the request domain "${domain}"`);
+    }
+    const jwtTools = new JwtTools({ cookieName, cookieDomain });
+    jwtTools.resetPublicKey(jwtPublicKeyPEM!);
+    jwtTools.resetPrivateKey(jwtPrivateKeyPEM!);
+
     let response;
     const qsparms = querystring ? new URLSearchParams(querystring) : null;
     console.log(`uri: ${uri}`);
